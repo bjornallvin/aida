@@ -17,6 +17,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", "room-client"))
 # Import native STT classes
 try:
     from voice_commands import VoiceCommandHandler
+
     NATIVE_STT_AVAILABLE = True
 except ImportError:
     NATIVE_STT_AVAILABLE = False

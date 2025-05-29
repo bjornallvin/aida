@@ -1,5 +1,5 @@
 {
-  "room_name": "pi_room",
+  "room_name": "unknown",
   "server_host": "192.168.1.100",
   "server_port": 1704,
   "sound_card": "default",
@@ -8,15 +8,18 @@
   "retry_interval": 10,
   "max_retries": -1,
   "client_name": null,
-  "voice_commands_enabled": true,
+  "voice_commands_enabled": false,
   "backend_url": "http://192.168.1.100:3000",
   "ai_audio_playback": true,
-  "vad_aggressiveness": 3,
-  "silence_threshold": 40,
   "use_native_stt": true,
   "stt_config": {
-    "model_size": "tiny",
-    "device": "cpu",
-    "compute_type": "float32"
-  }
+    "model_size": "base",
+    "device": "auto",
+    "compute_type": "float16"
+  },
+  "vad_aggressiveness": 3,
+  "silence_threshold": 40,
+  "wake_word": "apartment",
+  "wake_word_timeout": 120,
+  "test_audio_on_start": false
 }

@@ -1,15 +1,23 @@
 {
-    "room_name": "dev_test_room",
-    "server_host": "localhost",
-    "server_port": 1704,
-    "sound_card": "default",
-    "volume": 50,
-    "auto_start": true,
-    "retry_interval": 10,
-    "max_retries": 3,
-    "client_name": "dev_test_room",
-    "voice_commands_enabled": true,
-    "backend_url": "http://localhost:3000",
-    "ai_audio_playback": true,
-    "test_audio_on_start": false
+  "room_name": "dev_test_room",
+  "server_host": "localhost",
+  "server_port": 1704,
+  "sound_card": "default",
+  "volume": 50,
+  "auto_start": true,
+  "retry_interval": 10,
+  "max_retries": 3,
+  "client_name": "dev_test_room",
+  "voice_commands_enabled": true,
+  "backend_url": "http://localhost:3000",
+  "ai_audio_playback": true,
+  "test_audio_on_start": false,
+  "use_native_stt": true,
+  "stt_config": {
+    "model_size": "base",
+    "device": "auto",
+    "compute_type": "float16"
+  },
+  "vad_aggressiveness": 3,
+  "silence_threshold": 40
 }

@@ -1,16 +1,15 @@
 """
-Native STT implementation using faster-whisper for improved performance.
-This implementation provides local speech-to-text without network calls.
+Speech-to-Text implementations
 """
 
-import os
-import time
 import logging
-from typing import Optional, Dict, Any
-from pathlib import Path
+from typing import Dict, Any, Optional
+from ..utils import get_cache_dir
+
+logger = logging.getLogger(__name__)
 
 try:
-    from faster_whisper import WhisperModel
+    from faster_whisper import WhisperModel  # type: ignore[import-untyped]
 
     FASTER_WHISPER_AVAILABLE = True
 except ImportError:
@@ -49,9 +48,11 @@ class FasterWhisperSTT:
         self.device = device
         self.compute_type = compute_type
         self.model = None
-        self.cache_dir = cache_dir or os.path.expanduser("~/.cache/faster-whisper")
+        self.cache_dir = cache_dir or get_cache_dir()
 
         # Ensure cache directory exists
+        from pathlib import Path
+
         Path(self.cache_dir).mkdir(parents=True, exist_ok=True)
 
         self.logger = logging.getLogger(__name__)
@@ -60,14 +61,16 @@ class FasterWhisperSTT:
     def _load_model(self):
         """Load the Whisper model."""
         try:
+            import time
+
             start_time = time.time()
-            self.logger.info(f"Loading faster-whisper model: {self.model_size}")
+            self.logger.info("Loading faster-whisper model: %s", self.model_size)
 
             # Determine device
             device = self.device
             if device == "auto":
                 try:
-                    import torch
+                    import torch  # type: ignore[import-untyped]
 
                     device = "cuda" if torch.cuda.is_available() else "cpu"
                 except ImportError:
@@ -83,15 +86,15 @@ class FasterWhisperSTT:
                 device=device,
                 compute_type=compute_type,
                 download_root=self.cache_dir,
-            )
+            )  # type: ignore
 
             load_time = time.time() - start_time
             self.logger.info(
-                f"Model loaded in {load_time:.2f}s on {device} with {compute_type}"
+                "Model loaded in %.2fs on %s with %s", load_time, device, compute_type
             )
 
-        except Exception as e:
-            self.logger.error(f"Failed to load model: {e}")
+        except (ImportError, OSError, IOError) as e:
+            self.logger.error("Failed to load model: %s", e)
             raise
 
     def transcribe_file(
@@ -114,10 +117,14 @@ class FasterWhisperSTT:
         if not self.model:
             raise RuntimeError("Model not loaded")
 
+        import os
+
         if not os.path.exists(audio_path):
             raise FileNotFoundError(f"Audio file not found: {audio_path}")
 
         try:
+            import time
+
             start_time = time.time()
 
             # Transcribe with faster-whisper
@@ -161,12 +168,12 @@ class FasterWhisperSTT:
             }
 
             self.logger.info(
-                f"Transcribed in {transcription_time:.2f}s: '{full_text[:100]}...'"
+                "Transcribed in %.2fs: '%s...'", transcription_time, full_text[:100]
             )
             return result
 
-        except Exception as e:
-            self.logger.error(f"Transcription failed: {e}")
+        except (OSError, IOError) as e:
+            self.logger.error("Transcription failed: %s", e)
             return {
                 "text": "",
                 "segments": [],
@@ -176,14 +183,13 @@ class FasterWhisperSTT:
             }
 
     def transcribe_numpy(
-        self, audio_array, sample_rate: int = 16000, language: Optional[str] = None
+        self, audio_array, language: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Transcribe numpy audio array directly.
 
         Args:
             audio_array: Numpy array with audio data
-            sample_rate: Sample rate of the audio
             language: Language code or None for auto-detection
 
         Returns:
@@ -193,6 +199,8 @@ class FasterWhisperSTT:
             raise RuntimeError("Model not loaded")
 
         try:
+            import time
+
             start_time = time.time()
 
             segments, info = self.model.transcribe(
@@ -229,8 +237,8 @@ class FasterWhisperSTT:
                 "success": True,
             }
 
-        except Exception as e:
-            self.logger.error(f"Numpy transcription failed: {e}")
+        except (OSError, IOError) as e:
+            self.logger.error("Numpy transcription failed: %s", e)
             return {"text": "", "error": str(e), "success": False}
 
     def get_model_info(self) -> Dict[str, Any]:
@@ -245,36 +253,32 @@ class FasterWhisperSTT:
         }
 
 
-# Factory function for easy instantiation
-def create_faster_whisper_stt(
-    model_size: str = "base", device: str = "auto", compute_type: str = "float16"
-) -> FasterWhisperSTT:
+def create_stt_engine(config: Dict[str, Any]) -> Optional[FasterWhisperSTT]:
     """
-    Factory function to create a FasterWhisperSTT instance.
+    Factory function to create an STT engine based on configuration.
 
-    Recommended configurations:
-    - For speed: model_size="tiny" or "base"
-    - For accuracy: model_size="small" or "medium"
-    - For CPU: compute_type="float32"
-    - For GPU: compute_type="float16"
+    Args:
+        config: STT configuration dictionary
+
+    Returns:
+        STT engine instance or None if not available
     """
-    return FasterWhisperSTT(
-        model_size=model_size, device=device, compute_type=compute_type
-    )
+    if not config.get("use_native_stt", True):
+        return None
 
+    if not FASTER_WHISPER_AVAILABLE:
+        logger.warning("faster-whisper not available")
+        return None
 
-if __name__ == "__main__":
-    # Test the implementation
-    logging.basicConfig(level=logging.INFO)
+    try:
+        stt_config = config.get("stt_config", {})
+        model_size = stt_config.get("model_size", "base")
+        device = stt_config.get("device", "auto")
+        compute_type = stt_config.get("compute_type", "float16")
 
-    print("Testing FasterWhisperSTT...")
-    stt = create_faster_whisper_stt(model_size="tiny")  # Use tiny for quick testing
-    print(f"Model info: {stt.get_model_info()}")
-
-    # Test with a sample audio file if available
-    test_audio = "/tmp/test_audio.wav"
-    if os.path.exists(test_audio):
-        result = stt.transcribe_file(test_audio)
-        print(f"Transcription: {result}")
-    else:
-        print("No test audio file found at /tmp/test_audio.wav")
+        return FasterWhisperSTT(
+            model_size=model_size, device=device, compute_type=compute_type
+        )
+    except (ImportError, OSError, IOError) as e:
+        logger.error("Failed to create STT engine: %s", e)
+        return None

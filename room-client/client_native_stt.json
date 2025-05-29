@@ -1,31 +1,30 @@
 {
-    "_comment": "Aida Client Configuration with Native STT",
-    "room_name": "living_room",
-    "voice_commands_enabled": true,
-    "ai_audio_playback": true,
-    "backend_url": "http://localhost:3000",
-    "stt_config": {
-        "_comment": "Speech-to-Text Configuration - Choose one engine",
-        "_option1_comment": "Local Whisper (RECOMMENDED) - No internet required after setup",
-        "engine": "whisper",
-        "model_size": "base",
-        "_option2_comment": "SpeechRecognition with Google (requires internet)",
-        "_engine": "speechrecognition",
-        "_sr_engine": "google",
-        "_option3_comment": "SpeechRecognition with offline Sphinx",
-        "_engine": "speechrecognition",
-        "_sr_engine": "sphinx",
-        "_option4_comment": "Vosk offline (requires model download)",
-        "_engine": "vosk",
-        "_model_path": "/path/to/vosk-model-en-us-0.22",
-        "_option5_comment": "Backend STT (original behavior)",
-        "_engine": "backend"
-    },
-    "audio_settings": {
-        "sample_rate": 16000,
-        "channels": 1,
-        "chunk_size": 1024,
-        "silence_threshold": 30,
-        "vad_aggressiveness": 2
-    }
+  "_comment": "Aida Client Configuration with Native STT",
+  "room_name": "living_room",
+  "voice_commands_enabled": true,
+  "ai_audio_playback": true,
+  "backend_url": "http://localhost:3000",
+  "stt_config": {
+    "_comment": "Speech-to-Text Configuration - Choose one engine",
+    "_option1_comment": "Local Whisper (RECOMMENDED) - No internet required after setup",
+    "engine": "whisper",
+    "model_size": "base",
+    "_option2_comment": "SpeechRecognition with Google (requires internet)",
+    "_engine": "backend",
+    "_sr_engine": "sphinx",
+    "_option3_comment": "SpeechRecognition with offline Sphinx",
+    "_option4_comment": "Vosk offline (requires model download)",
+    "_model_path": "/path/to/vosk-model-en-us-0.22",
+    "_option5_comment": "Backend STT (original behavior)"
+  },
+  "audio_settings": {
+    "sample_rate": 16000,
+    "channels": 1,
+    "chunk_size": 1024,
+    "silence_threshold": 30,
+    "vad_aggressiveness": 2
+  },
+  "use_native_stt": true,
+  "vad_aggressiveness": 3,
+  "silence_threshold": 40
 }

@@ -1,0 +1,22 @@
+{
+    "room_name": "pi_room",
+    "server_host": "192.168.1.100",
+    "server_port": 1704,
+    "sound_card": "default",
+    "volume": 50,
+    "auto_start": true,
+    "retry_interval": 10,
+    "max_retries": -1,
+    "client_name": null,
+    "voice_commands_enabled": true,
+    "backend_url": "http://192.168.1.100:3000",
+    "ai_audio_playback": true,
+    "vad_aggressiveness": 3,
+    "silence_threshold": 40,
+    "use_native_stt": true,
+    "stt_config": {
+        "model_size": "tiny",
+        "device": "cpu",
+        "compute_type": "float32"
+    }
+}
