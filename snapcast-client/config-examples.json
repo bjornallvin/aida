@@ -1,0 +1,63 @@
+# Example client configurations for different rooms
+
+# Living Room Configuration with Voice Commands
+{
+    "room_name": "living_room",
+    "server_host": "192.168.1.100",
+    "server_port": 1704,
+    "sound_card": "hw:0,0",
+    "volume": 60,
+    "auto_start": true,
+    "retry_interval": 10,
+    "max_retries": -1,
+    "client_name": "living_room",
+    "test_audio_on_start": false,
+    "voice_commands_enabled": true,
+    "backend_url": "http://192.168.1.100:3000",
+    "ai_audio_playback": true
+}
+
+# Kitchen Configuration with Voice Commands
+{
+    "room_name": "kitchen",
+    "server_host": "192.168.1.100",
+    "server_port": 1704,
+    "sound_card": "hw:1,0",
+    "volume": 70,
+    "auto_start": true,
+    "retry_interval": 10,
+    "max_retries": -1,
+    "client_name": "kitchen",
+    "test_audio_on_start": false,
+    "voice_commands_enabled": true,
+    "backend_url": "http://192.168.1.100:3000",
+    "ai_audio_playback": true
+}
+
+# Bedroom Configuration
+{
+    "room_name": "bedroom",
+    "server_host": "192.168.1.100",
+    "server_port": 1704,
+    "sound_card": "default",
+    "volume": 40,
+    "auto_start": true,
+    "retry_interval": 10,
+    "max_retries": -1,
+    "client_name": "bedroom",
+    "test_audio_on_start": false
+}
+
+# Bathroom Configuration (lower volume)
+{
+    "room_name": "bathroom",
+    "server_host": "192.168.1.100",
+    "server_port": 1704,
+    "sound_card": "hw:0,0",
+    "volume": 30,
+    "auto_start": true,
+    "retry_interval": 10,
+    "max_retries": -1,
+    "client_name": "bathroom",
+    "test_audio_on_start": false
+}

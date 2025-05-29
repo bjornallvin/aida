@@ -1,0 +1,12 @@
+{
+    "room_name": "test_room",
+    "server_host": "localhost",
+    "server_port": 1704,
+    "sound_card": "default",
+    "volume": 50,
+    "auto_start": true,
+    "retry_interval": 10,
+    "max_retries": 3,
+    "client_name": "test_room",
+    "test_audio_on_start": false
+}

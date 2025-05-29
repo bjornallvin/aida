@@ -1,0 +1,23 @@
+# Mopidy Core - Music server with extensible architecture
+mopidy>=3.4.0,<4.0.0
+
+# Essential Mopidy Extensions
+mopidy-spotify>=4.1.1,<5.0.0    # Spotify integration
+mopidy-mpd>=3.3.0,<4.0.0        # MPD protocol support
+#mopidy-file>=3.3.0,<4.0.0       # Local file support
+mopidy-local>=3.2.1,<4.0.0      # Local media library
+
+# Additional Extensions (optional but recommended)
+mopidy-youtube>=3.6,<4.0.0              # YouTube integration
+mopidy-soundcloud>=3.0.2,<4.0.0         # SoundCloud support
+mopidy-internetarchive>=3.0.0,<4.0.0    # Internet Archive support
+
+# Core Dependencies
+requests>=2.25.0,<3.0.0         # HTTP requests
+pykka>=3.0.0,<4.0.0            # Actor framework
+
+# Development and Quality Tools
+black>=22.0.0                   # Code formatting
+flake8>=4.0.0                   # Linting
+pytest>=7.0.0                   # Testing framework
+pytest-cov>=3.0.0              # Coverage reporting

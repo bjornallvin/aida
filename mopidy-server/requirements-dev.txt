@@ -1,0 +1,26 @@
+# Development dependencies for Mopidy Server
+# Install with: pip install -r requirements-dev.txt
+
+# Include base requirements
+-r requirements.txt
+
+# Code Quality and Formatting
+black>=22.0.0                  # Code formatting
+flake8>=4.0.0                 # Linting
+isort>=5.10.0                 # Import sorting
+mypy>=0.950                   # Type checking
+
+# Testing
+pytest>=7.0.0                 # Testing framework
+pytest-cov>=3.0.0            # Coverage reporting
+pytest-mock>=3.7.0           # Mocking support
+pytest-asyncio>=0.18.0       # Async testing
+
+# Development Tools
+pre-commit>=2.17.0           # Git hooks
+watchdog>=2.1.0              # File watching for auto-reload
+python-dotenv>=0.19.0        # Environment variable loading
+
+# Documentation
+sphinx>=4.5.0                # Documentation generation
+sphinx-rtd-theme>=1.0.0      # Documentation theme

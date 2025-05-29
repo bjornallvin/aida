@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  aida:
+    build: .
+    ports:
+      - "3000:3000"    # Express backend
+      - "6680:6680"    # Mopidy HTTP
+      - "6600:6600"    # Mopidy MPD
+    environment:
+      # Backend environment variables
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
+      - MOPIDY_URL=http://localhost:6680
+      - PORT=3000
+      - TTS_OUTPUT_DIR=/app/backend/audio
+      
+      # Mopidy environment variables
+      - SPOTIFY_USERNAME=${SPOTIFY_USERNAME}
+      - SPOTIFY_PASSWORD=${SPOTIFY_PASSWORD}
+      - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID}
+      - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET}
+    volumes:
+      - ./backend/audio:/app/backend/audio
+      - ./music:/music  # Optional: mount local music directory
+    restart: unless-stopped
+    
+  # Optional: Snapcast server for multi-room audio
+  snapcast-server:
+    image: saiyato/snapcast:latest
+    ports:
+      - "1704:1704"    # Snapcast control
+      - "1705:1705"    # Snapcast stream
+    volumes:
+      - ./snapcast:/root/.snapcast
+    restart: unless-stopped
+    depends_on:
+      - aida

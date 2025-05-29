@@ -1,0 +1,23 @@
+services:
+  mopidy:
+    image: wernight/mopidy:latest
+    container_name: mopidy
+    ports:
+      - "6680:6680"   # HTTP
+      - "6600:6600"   # MPD
+    volumes:
+      - ./mopidy.conf:/config/mopidy.conf:ro
+      - ./music:/music   # Optional: mount your music folder
+      - ./data:/data     # Optional: persistent Mopidy data
+      - ./cache:/cache   # Optional: persistent Mopidy cache
+      - ./local:/local   # Optional: persistent Mopidy local
+      - ./playlists:/playlists # Optional: persistent playlists
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - SPOTIFY_USERNAME=${SPOTIFY_USERNAME}
+      - SPOTIFY_PASSWORD=${SPOTIFY_PASSWORD}
+      - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID}
+      - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET}
+    restart: unless-stopped

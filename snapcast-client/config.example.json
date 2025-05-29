@@ -1,0 +1,14 @@
+{
+    "room_name": "development",
+    "server_host": "localhost",
+    "server_port": 1704,
+    "sound_card": "default",
+    "volume": 70,
+    "auto_start": false,
+    "retry_interval": 10,
+    "max_retries": 5,
+    "client_name": "aida-macos-dev",
+    "voice_commands_enabled": true,
+    "backend_url": "http://localhost:3000",
+    "ai_audio_playback": true
+}

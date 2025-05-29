@@ -1,0 +1,38 @@
+{
+    "name": "aida-apartment-ai",
+    "version": "1.0.0",
+    "description": "Complete apartment AI system with Express backend and Mopidy server",
+    "private": true,
+    "workspaces": [
+        "backend"
+    ],
+    "scripts": {
+        "install:backend": "cd backend && npm install",
+        "install:mopidy": "cd mopidy-server && pip3 install -r requirements.txt",
+        "start:backend": "cd backend && npm start",
+        "start:mopidy": "cd mopidy-server && python3 server.py",
+        "start:mopidy:daemon": "cd mopidy-server && python3 server.py --daemon",
+        "dev:backend": "cd backend && npm run dev",
+        "stop:mopidy": "cd mopidy-server && python3 server.py --stop",
+        "status:mopidy": "cd mopidy-server && python3 server.py --status",
+        "setup": "npm run install:backend && npm run install:mopidy",
+        "start": "npm run start:mopidy:daemon && npm run start:backend",
+        "dev": "npm run start:mopidy:daemon && npm run dev:backend",
+        "docker:build": "docker build -t aida-apartment-ai .",
+        "docker:run": "docker-compose up -d",
+        "docker:stop": "docker-compose down",
+        "docker:logs": "docker-compose logs -f",
+        "docker:setup": "cp .env.docker.example .env"
+    },
+    "keywords": [
+        "ai",
+        "apartment",
+        "music",
+        "tts",
+        "home-automation",
+        "mopidy",
+        "spotify"
+    ],
+    "author": "",
+    "license": "MIT"
+}
