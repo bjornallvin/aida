@@ -87,6 +87,50 @@ chmod +x "$INSTALL_DIR/room-client/setup.py"
 echo "🔧 Running interactive setup..."
 python3 "$INSTALL_DIR/room-client/setup.py" "$CONFIG_DIR/client.json"
 
+echo "🍓 Optimizing STT for Raspberry Pi..."
+# Run Pi-specific STT optimization
+python3 "$INSTALL_DIR/room-client/pi_optimization.py" > /tmp/pi_stt_optimization.log 2>&1
+
+# Apply optimal STT configuration for this Pi
+if [ -f "$INSTALL_DIR/room-client/pi_optimization.py" ]; then
+    OPTIMAL_CONFIG=$(python3 -c "
+import sys
+sys.path.append('$INSTALL_DIR/room-client')
+from pi_optimization import get_pi_info, get_optimal_stt_config
+import json
+
+pi_info = get_pi_info()
+config = get_optimal_stt_config(pi_info)
+print(json.dumps(config))
+")
+    
+    if [ ! -z "$OPTIMAL_CONFIG" ]; then
+        echo "Applying optimal STT config for this Pi: $OPTIMAL_CONFIG"
+        python3 -c "
+import json
+import sys
+
+# Read current config
+with open('$CONFIG_DIR/client.json', 'r') as f:
+    config = json.load(f)
+
+# Update STT config
+optimal = json.loads('$OPTIMAL_CONFIG')
+config['stt_config'] = optimal
+
+# Write back
+with open('$CONFIG_DIR/client.json', 'w') as f:
+    json.dump(config, f, indent=2)
+
+print('STT configuration optimized for this Raspberry Pi')
+"
+    fi
+fi
+
+# Set optimal environment variables for ARM/Pi
+echo 'export OMP_NUM_THREADS=$(nproc --ignore=1)' >> /etc/environment
+echo 'export ONNX_NUM_THREADS=$(nproc --ignore=1)' >> /etc/environment
+
 echo "🔧 Configuring audio..."
 
 # Enable audio for the service user

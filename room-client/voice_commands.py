@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 AI Voice Command Module for Aida Snapcast Client
-Handles speech-to-text recording and AI interaction
+Handles speech-to-text recording and AI interaction with native STT support
 """
 
 import json
@@ -22,6 +22,14 @@ try:
     AUDIO_AVAILABLE = True
 except ImportError:
     AUDIO_AVAILABLE = False
+
+# Native STT imports
+try:
+    from native_stt_faster_whisper import create_faster_whisper_stt
+
+    NATIVE_STT_AVAILABLE = True
+except ImportError:
+    NATIVE_STT_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +72,12 @@ class VoiceCommandHandler:
             config.get("voice_commands_enabled", True) and AUDIO_AVAILABLE
         )
 
+        # Native STT configuration
+        self.use_native_stt = config.get("use_native_stt", True)
+        self.native_stt = None
+        self.stt_config = config.get("stt_config", {})
+        self._init_native_stt()
+
         # Wake word settings
         self.wake_word = "apartment"
         self.wake_word_detected = False
@@ -100,6 +114,35 @@ class VoiceCommandHandler:
         except (OSError, ImportError, AttributeError) as e:
             logger.error("Failed to initialize audio: %s", e)
             self.listening_enabled = False
+
+    def _init_native_stt(self):
+        """Initialize native STT if enabled and available"""
+        if not self.use_native_stt:
+            logger.info("Native STT disabled in configuration")
+            return
+
+        try:
+            from native_stt_faster_whisper import create_faster_whisper_stt
+
+            # Get STT configuration with defaults
+            model_size = self.stt_config.get("model_size", "base")
+            device = self.stt_config.get("device", "auto")
+            compute_type = self.stt_config.get("compute_type", "float16")
+
+            logger.info(f"Initializing native STT with model: {model_size}")
+            self.native_stt = create_faster_whisper_stt(
+                model_size=model_size, device=device, compute_type=compute_type
+            )
+            logger.info("✅ Native STT initialized successfully")
+
+        except ImportError:
+            logger.warning(
+                "Native STT not available - install faster-whisper: pip install faster-whisper"
+            )
+            self.use_native_stt = False
+        except Exception as e:
+            logger.error(f"Failed to initialize native STT: {e}")
+            self.use_native_stt = False
 
     def start_listening(self):
         """Start listening for voice commands in background thread"""
@@ -271,7 +314,40 @@ class VoiceCommandHandler:
                     pass
 
     def _transcribe_audio(self, audio_file_path: str) -> str:
-        """Transcribe audio file to text using the backend"""
+        """Transcribe audio file to text using native STT or backend fallback"""
+
+        # Try native STT first if available
+        if self.use_native_stt and self.native_stt:
+            try:
+                start_time = time.time()
+                result = self.native_stt.transcribe_file(audio_file_path)
+                transcribe_time = time.time() - start_time
+
+                if result.get("success", False):
+                    transcription = result.get("text", "").strip()
+                    if transcription:
+                        logger.info(
+                            f"🚀 Native STT transcribed in {transcribe_time:.2f}s: '{transcription[:50]}...'"
+                        )
+                        return transcription
+                    else:
+                        logger.warning(
+                            "Native STT returned empty transcription, falling back to backend"
+                        )
+                else:
+                    logger.warning(
+                        f"Native STT failed: {result.get('error', 'Unknown error')}, falling back to backend"
+                    )
+
+            except Exception as e:
+                logger.error(f"Native STT exception: {e}, falling back to backend")
+
+        # Fallback to backend transcription
+        logger.info("Using backend STT transcription")
+        return self._transcribe_audio_backend(audio_file_path)
+
+    def _transcribe_audio_backend(self, audio_file_path: str) -> str:
+        """Original backend transcription method"""
         try:
             with open(audio_file_path, "rb") as audio_file:
                 files = {"audio": ("audio.wav", audio_file, "audio/wav")}
@@ -405,6 +481,32 @@ class VoiceCommandHandler:
             else:
                 # Normal command processing
                 return self._send_ai_command(text)
+
+    def get_stt_status(self) -> dict:
+        """Get STT system status and performance info"""
+        status = {
+            "native_stt_enabled": self.use_native_stt,
+            "native_stt_available": NATIVE_STT_AVAILABLE,
+            "native_stt_loaded": self.native_stt is not None,
+            "backend_fallback": True,
+            "stt_config": self.stt_config.copy() if self.stt_config else {},
+        }
+
+        if self.native_stt:
+            try:
+                model_info = self.native_stt.get_model_info()
+                status.update(
+                    {
+                        "model_info": model_info,
+                        "model_size": model_info.get("model_size", "unknown"),
+                        "device": model_info.get("device", "unknown"),
+                        "compute_type": model_info.get("compute_type", "unknown"),
+                    }
+                )
+            except Exception as e:
+                status["model_info_error"] = str(e)
+
+        return status
 
     def cleanup(self):
         """Clean up resources"""
