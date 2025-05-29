@@ -94,25 +94,25 @@ webrtcvad          2.0.10
 ## 📁 Files Modified/Created
 
 ### Core Client Files:
-- `/Users/bjorn.allvin/Code/aida/snapcast-client/client.py` - Main client with macOS compatibility
-- `/Users/bjorn.allvin/Code/aida/snapcast-client/voice_commands.py` - Cross-platform voice handling
+- `/Users/bjorn.allvin/Code/aida/room-client/client.py` - Main client with macOS compatibility
+- `/Users/bjorn.allvin/Code/aida/room-client/voice_commands.py` - Cross-platform voice handling
 
 ### Backend Files:
 - `/Users/bjorn.allvin/Code/aida/backend/server.js` - Added macOS audio playback support
 
 ### Documentation:
-- `/Users/bjorn.allvin/Code/aida/snapcast-client/README.md` - Added comprehensive macOS section
-- `/Users/bjorn.allvin/Code/aida/snapcast-client/config.example.json` - macOS example config
+- `/Users/bjorn.allvin/Code/aida/room-client/README.md` - Added comprehensive macOS section
+- `/Users/bjorn.allvin/Code/aida/room-client/config.example.json` - macOS example config
 
 ### Development Tools:
-- `/Users/bjorn.allvin/Code/aida/snapcast-client/activate.sh` - Virtual environment activation script
-- `/Users/bjorn.allvin/Code/aida/snapcast-client/venv/` - Python virtual environment
+- `/Users/bjorn.allvin/Code/aida/room-client/activate.sh` - Virtual environment activation script
+- `/Users/bjorn.allvin/Code/aida/room-client/venv/` - Python virtual environment
 
 ## 🚀 Usage Examples
 
 ### Quick Start on macOS:
 ```bash
-cd /Users/bjorn.allvin/Code/aida/snapcast-client
+cd /Users/bjorn.allvin/Code/aida/room-client
 source activate.sh
 python client.py --test-audio
 python client.py --list-cards

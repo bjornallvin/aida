@@ -6,7 +6,7 @@ A complete apartment AI system with Express backend, integrated Mopidy server fo
 
 - **Backend Server** (`/backend`): Node.js Express API for music control and TTS
 - **Mopidy Server** (`/mopidy-server`): Python-based music server with Spotify/YouTube/SoundCloud
-- **Snapcast Clients** (`/snapcast-client`): Raspberry Pi clients for room-specific audio
+- **Room Clients** (`/room-client`): Raspberry Pi clients for room-specific audio
 - **Multi-room Audio**: Complete distributed audio system with room-based control
 
 ## Features
@@ -18,6 +18,25 @@ A complete apartment AI system with Express backend, integrated Mopidy server fo
 - **Raspberry Pi Integration**: Complete setup scripts for Pi deployment
 - **Docker Support**: Containerized deployment with docker-compose
 - **Robust Monitoring**: Auto-reconnect, health checks, and comprehensive logging
+
+## Development Environment
+
+For development across all components, use the unified virtual environment:
+
+```bash
+# Set up unified development environment
+./setup_dev_env.sh
+
+# Activate the environment
+source ./activate_dev_env.sh
+
+# Now you can work on any component
+cd room-client && python client.py --test-voice
+cd mopidy-server && python server.py
+cd backend && npm run dev
+```
+
+**📖 See [DEV_ENVIRONMENT.md](DEV_ENVIRONMENT.md) for detailed development setup and workflows.**
 
 ## Quick Setup
 
@@ -61,10 +80,10 @@ docker-compose up -d
    ```
 
 ### Option 3: Raspberry Pi Clients
-Deploy Snapcast clients to your Raspberry Pi devices:
+Deploy room clients to your Raspberry Pi devices:
 ```bash
 # Deploy to multiple Pis at once
-cd snapcast-client
+cd room-client
 ./deploy-to-pis.sh 192.168.1.101 192.168.1.102 192.168.1.103
 ```
 
@@ -247,7 +266,7 @@ Aida supports AI-powered voice commands through Snapcast clients equipped with m
 
 2. **Install Dependencies** on Raspberry Pi:
    ```bash
-   cd snapcast-client
+   cd room-client
    pip3 install -r requirements.txt
    ```
 
@@ -280,7 +299,7 @@ Aida supports AI-powered voice commands through Snapcast clients equipped with m
 ./test-voice-integration.sh
 
 # Test individual components
-cd snapcast-client
+cd room-client
 python3 client.py --test-voice
 
 # Interactive voice testing
@@ -410,11 +429,11 @@ The Snapcast client system provides distributed audio to Raspberry Pi devices in
 ### Raspberry Pi Setup
 ```bash
 # Single Pi setup
-scp -r snapcast-client/ pi@192.168.1.101:/tmp/
-ssh pi@192.168.1.101 "sudo /tmp/snapcast-client/install-pi.sh"
+scp -r room-client/ pi@192.168.1.101:/tmp/
+ssh pi@192.168.1.101 "sudo /tmp/room-client/install-pi.sh"
 
 # Bulk deployment to multiple Pis
-cd snapcast-client
+cd room-client
 ./deploy-to-pis.sh 192.168.1.101 192.168.1.102 192.168.1.103
 ```
 
@@ -437,10 +456,10 @@ Each Pi uses `/etc/aida/client.json`:
 ### Client Management
 ```bash
 # Interactive setup on Pi
-sudo python3 /opt/aida/snapcast-client/setup.py
+sudo python3 /opt/aida/room-client/setup.py
 
 # Manual client control
-sudo python3 /opt/aida/snapcast-client/client.py --config /etc/aida/client.json
+sudo python3 /opt/aida/room-client/client.py --config /etc/aida/client.json
 
 # Check client status
 sudo systemctl status aida-snapcast-[room-name]

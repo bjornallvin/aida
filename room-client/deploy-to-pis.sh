@@ -23,10 +23,10 @@ fi
 # Create deployment package
 echo "📦 Creating deployment package..."
 TEMP_DIR=$(mktemp -d)
-cp -r "$SCRIPT_DIR" "$TEMP_DIR/snapcast-client"
+cp -r "$SCRIPT_DIR" "$TEMP_DIR/room-client"
 
 # Create deployment info
-cat > "$TEMP_DIR/snapcast-client/deploy-info.txt" << EOF
+cat > "$TEMP_DIR/room-client/deploy-info.txt" << EOF
 Aida Snapcast Client Deployment
 Generated: $(date)
 Version: 1.0.0
@@ -57,7 +57,7 @@ for PI_IP in "$@"; do
     
     # Copy files
     echo "📁 Copying files to $PI_IP..."
-    rsync -av --delete "$TEMP_DIR/snapcast-client/" "$PI_USER@$PI_IP:$DEPLOY_DIR/"
+    rsync -av --delete "$TEMP_DIR/room-client/" "$PI_USER@$PI_IP:$DEPLOY_DIR/"
     
     # Run installation
     echo "🔧 Running installation on $PI_IP..."

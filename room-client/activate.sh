@@ -1,5 +1,5 @@
 #!/bin/bash
-# Aida Snapcast Client - Virtual Environment Activation Script
+# Aida Room Client - Virtual Environment Activation Script
 # Usage: source activate.sh
 
 # Get the directory where this script is located

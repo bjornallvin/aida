@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Snapcast Client Manager for Aida Apartment AI
+Room Client Manager for Aida Apartment AI
 Manages Snapcast client connection and room-specific audio routing
 """
 
@@ -13,6 +13,7 @@ import subprocess
 import signal
 import platform
 from typing import Dict, Any, Optional
+import requests
 
 # Try to import voice commands module
 try:
@@ -31,13 +32,13 @@ IS_WINDOWS = PLATFORM == "Windows"
 
 
 def get_default_config_path():
-    """Get default configuration path based on platform"""
-    if IS_MACOS:
-        return os.path.expanduser("~/Library/Application Support/Aida/client.json")
-    elif IS_WINDOWS:
-        return os.path.expanduser("~/AppData/Local/Aida/client.json")
-    else:  # Linux and others
-        return "/etc/aida/client.json"
+    """Get default configuration path - now defaults to project root for development"""
+    # Get the directory containing this script
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # Go up one level to the project root
+    project_root = os.path.dirname(script_dir)
+    # Use client.json in the project root
+    return os.path.join(project_root, "client.json")
 
 
 def get_log_path():
@@ -284,7 +285,6 @@ class SnapcastClient:
 
         try:
             # Download and play the AI response audio
-            import requests
 
             # Convert relative URL to absolute if needed
             if audio_file_url.startswith("/"):
@@ -535,7 +535,7 @@ def main():
         "--config",
         "-c",
         help="Path to client configuration file",
-        default="/etc/aida/client.json",
+        default=None,
     )
     parser.add_argument(
         "--daemon", "-d", action="store_true", help="Run as daemon process"

@@ -231,9 +231,7 @@ def interactive_setup(config_file_path):
         create_systemd_service(config_file_path, room_name)
 
     print("\nSetup complete! You can now start the client with:")
-    print(
-        f"sudo python3 /opt/aida/snapcast-client/client.py --config {config_file_path}"
-    )
+    print(f"sudo python3 /opt/aida/room-client/client.py --config {config_file_path}")
 
 
 def create_systemd_service(service_config_path, room_name):
@@ -247,7 +245,7 @@ Wants=network.target
 Type=simple
 User=aida
 Group=audio
-ExecStart=/usr/bin/python3 /opt/aida/snapcast-client/client.py --config {service_config_path} --daemon
+ExecStart=/usr/bin/python3 /opt/aida/room-client/client.py --config {service_config_path} --daemon
 Restart=always
 RestartSec=10
 StandardOutput=journal

@@ -7,13 +7,13 @@ echo "=================================="
 # Test 1: Check if all components can start without errors
 echo -e "\n1. Testing component startup..."
 
-echo "   • Testing Snapcast client help..."
-cd snapcast-client
+echo "   • Testing Room client help..."
+cd room-client
 python3 client.py --help > /dev/null 2>&1
 if [ $? -eq 0 ]; then
-    echo "     ✅ Snapcast client loads successfully"
+    echo "     ✅ Room client loads successfully"
 else
-    echo "     ❌ Snapcast client failed to load"
+    echo "     ❌ Room client failed to load"
 fi
 
 # Test 2: Check configuration validation
@@ -43,10 +43,10 @@ files=(
     "backend/package.json"
     "mopidy-server/server.py"
     "mopidy-server/mopidy.conf"
-    "snapcast-client/client.py"
-    "snapcast-client/setup.py"
-    "snapcast-client/install-pi.sh"
-    "snapcast-client/deploy-to-pis.sh"
+    "room-client/client.py"
+    "room-client/setup.py"
+    "room-client/install-pi.sh"
+    "room-client/deploy-to-pis.sh"
     "docker-compose.yml"
     "Dockerfile"
 )
@@ -62,5 +62,5 @@ done
 echo -e "\n🎉 Test completed!"
 echo "To deploy the system:"
 echo "  • For Docker: docker-compose up -d"
-echo "  • For Pi clients: cd snapcast-client && ./deploy-to-pis.sh [ip1] [ip2] ..."
+echo "  • For Pi clients: cd room-client && ./deploy-to-pis.sh [ip1] [ip2] ..."
 echo "  • For manual setup: npm run setup && npm start"

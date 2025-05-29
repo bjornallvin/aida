@@ -45,6 +45,7 @@ venv/
 ENV/
 env/
 .venv/
+aida-dev-env/
 
 # Mopidy
 .local/

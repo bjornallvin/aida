@@ -64,7 +64,7 @@ fi
 echo -e "\n${YELLOW}4. Testing Voice Command Dependencies...${NC}"
 
 # Check Python dependencies
-cd snapcast-client
+cd room-client
 
 if python3 -c "import pyaudio, webrtcvad, requests" 2>/dev/null; then
     echo -e "${GREEN}✓ Voice command Python dependencies available${NC}"
@@ -147,7 +147,7 @@ echo "• Snapcast client: $(if python3 -c "from client import SnapcastClient" 2
 echo -e "\n${GREEN}🎉 AI Voice Command Integration Test Complete!${NC}"
 echo ""
 echo "To enable voice commands on a Raspberry Pi:"
-echo "1. Copy snapcast-client/ folder to your Pi"
+echo "1. Copy room-client/ folder to your Pi"
 echo "2. Run: pip3 install -r requirements.txt"
 echo "3. Configure client.json with voice_commands_enabled: true"
 echo "4. Run: python3 client.py --enable-voice"

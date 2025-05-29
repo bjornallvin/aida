@@ -1,6 +1,6 @@
-# Snapcast Client for Aida Apartment AI
+# Room Client for Aida Apartment AI
 
-Raspberry Pi client software for Aida's multi-room audio system using Snapcast.
+Raspberry Pi client software for Aida's multi-room audio system. This client handles audio streaming, voice commands, and room-specific controls for the Aida apartment AI system.
 
 ## Features
 
@@ -18,14 +18,14 @@ Raspberry Pi client software for Aida's multi-room audio system using Snapcast.
 ### Quick Install with Voice Commands
 ```bash
 # Copy this directory to your Pi
-scp -r snapcast-client/ pi@your-pi-ip:/tmp/
+scp -r room-client/ pi@your-pi-ip:/tmp/
 
 # SSH to your Pi and run installation
 ssh pi@your-pi-ip
-sudo /tmp/snapcast-client/install-pi.sh
+sudo /tmp/room-client/install-pi.sh
 
 # Install voice command dependencies
-cd /opt/aida/snapcast-client
+cd /opt/aida/room-client
 sudo pip3 install -r requirements.txt
 ```
 
@@ -41,14 +41,14 @@ sudo apt install snapclient alsa-utils python3 python3-pip
 sudo apt install portaudio19-dev python3-dev
 sudo pip3 install pyaudio webrtcvad requests
 
-# Copy client files to /opt/aida/snapcast-client/
+# Copy client files to /opt/aida/room-client/
 # Run setup
 sudo python3 setup.py
 ```
 
 ## Installation on macOS
 
-The Aida snapcast client now supports macOS for development and testing purposes.
+The Aida room client now supports macOS for development and testing purposes.
 
 ### Prerequisites
 ```bash
@@ -65,7 +65,7 @@ brew install mpg123
 ### Installation
 ```bash
 # Clone or download the Aida project
-cd /path/to/aida/snapcast-client
+cd /path/to/aida/room-client
 
 # Create and activate Python virtual environment (recommended)
 python3 -m venv venv
@@ -86,7 +86,7 @@ cp config.example.json ~/Library/Application\ Support/Aida/client.json
 ### Quick Start (Virtual Environment)
 ```bash
 # Use the convenience activation script
-cd /path/to/aida/snapcast-client
+cd /path/to/aida/room-client
 source activate.sh
 
 # This will activate the virtual environment and show available commands

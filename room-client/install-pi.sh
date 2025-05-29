@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Aida Snapcast Client Installation Script for Raspberry Pi
+# Aida Room Client Installation Script for Raspberry Pi
 # Run this script on each Raspberry Pi that will act as a room client
 
 set -e
@@ -9,7 +9,7 @@ INSTALL_DIR="/opt/aida"
 SERVICE_USER="aida"
 CONFIG_DIR="/etc/aida"
 
-echo "🔊 Installing Aida Snapcast Client for Raspberry Pi..."
+echo "🔊 Installing Aida Room Client for Raspberry Pi..."
 
 # Check if running as root
 if [[ $EUID -ne 0 ]]; then
@@ -48,7 +48,7 @@ else
 fi
 
 echo "📁 Creating directories..."
-mkdir -p "$INSTALL_DIR/snapcast-client"
+mkdir -p "$INSTALL_DIR/room-client"
 mkdir -p "$CONFIG_DIR"
 mkdir -p "/var/log/aida"
 
@@ -57,35 +57,35 @@ chown -R "$SERVICE_USER:audio" "$INSTALL_DIR"
 chown -R "$SERVICE_USER:audio" "$CONFIG_DIR"
 chown -R "$SERVICE_USER:audio" "/var/log/aida"
 
-echo "📥 Installing Aida Snapcast Client..."
+echo "📥 Installing Aida Room Client..."
 
 # If we have internet, clone from repo, otherwise copy local files
 if curl -s --head https://github.com &>/dev/null; then
     echo "Downloading from repository..."
     # For now, we'll copy the files directly since they're local
     # In production, you'd clone from your git repo
-    if [ -d "/tmp/aida-source/snapcast-client" ]; then
-        cp -r /tmp/aida-source/snapcast-client/* "$INSTALL_DIR/snapcast-client/"
+    if [ -d "/tmp/aida-source/room-client" ]; then
+        cp -r /tmp/aida-source/room-client/* "$INSTALL_DIR/room-client/"
     else
         echo "⚠️  Source files not found. Please ensure Aida source is available."
         exit 1
     fi
 else
     echo "No internet connection. Using local files..."
-    if [ -d "./snapcast-client" ]; then
-        cp -r ./snapcast-client/* "$INSTALL_DIR/snapcast-client/"
+    if [ -d "./room-client" ]; then
+        cp -r ./room-client/* "$INSTALL_DIR/room-client/"
     else
-        echo "❌ Local snapcast-client directory not found"
+        echo "❌ Local room-client directory not found"
         exit 1
     fi
 fi
 
 # Make scripts executable
-chmod +x "$INSTALL_DIR/snapcast-client/client.py"
-chmod +x "$INSTALL_DIR/snapcast-client/setup.py"
+chmod +x "$INSTALL_DIR/room-client/client.py"
+chmod +x "$INSTALL_DIR/room-client/setup.py"
 
 echo "🔧 Running interactive setup..."
-python3 "$INSTALL_DIR/snapcast-client/setup.py" "$CONFIG_DIR/client.json"
+python3 "$INSTALL_DIR/room-client/setup.py" "$CONFIG_DIR/client.json"
 
 echo "🔧 Configuring audio..."
 
@@ -128,7 +128,7 @@ echo "🎯 Creating helper scripts..."
 # Create control script
 cat > "/usr/local/bin/aida-client" << EOF
 #!/bin/bash
-# Aida Snapcast Client Control Script
+# Aida Room Client Control Script
 
 ROOM_NAME=\$(cat $CONFIG_DIR/client.json | python3 -c "import sys, json; print(json.load(sys.stdin)['room_name'])" 2>/dev/null || echo "unknown")
 SERVICE_NAME="aida-snapcast-\$(echo \$ROOM_NAME | tr '[:upper:]' '[:lower:]' | tr ' ' '-')"
@@ -153,10 +153,10 @@ case "\$1" in
         journalctl -u "\$SERVICE_NAME" -f
         ;;
     setup)
-        python3 $INSTALL_DIR/snapcast-client/setup.py $CONFIG_DIR/client.json
+        python3 $INSTALL_DIR/room-client/setup.py $CONFIG_DIR/client.json
         ;;
     test-audio)
-        python3 $INSTALL_DIR/snapcast-client/client.py --config $CONFIG_DIR/client.json --test-audio
+        python3 $INSTALL_DIR/room-client/client.py --config $CONFIG_DIR/client.json --test-audio
         ;;
     *)
         echo "Usage: \$0 {start|stop|restart|status|logs|setup|test-audio}"

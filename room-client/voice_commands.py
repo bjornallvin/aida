@@ -217,9 +217,9 @@ class VoiceCommandHandler:
         try:
             logger.info("Sending voice command to AI backend")
 
-            # Prepare request data
+            # Prepare request data with explicit content type
             with open(audio_file_path, "rb") as audio_file:
-                files = {"audio": audio_file}
+                files = {"audio": ("audio.wav", audio_file, "audio/wav")}
                 data = {
                     "roomName": self.room_name,
                     "conversationHistory": json.dumps(self.conversation_history),
@@ -236,9 +236,11 @@ class VoiceCommandHandler:
             if response.status_code == 200:
                 result = response.json()
 
-                transcription = result.get("transcription", "")
-                ai_response = result.get("response", "")
-                audio_file = result.get("audioFile", "")
+                # Extract data from the wrapped response
+                data = result.get("data", {})
+                transcription = data.get("transcription", "")
+                ai_response = data.get("response", "")
+                audio_file = data.get("audioFile", "")
 
                 logger.info("AI response received: %s", ai_response[:100])
 
@@ -287,7 +289,7 @@ class VoiceCommandHandler:
 
             if response.status_code == 200:
                 result = response.json()
-                ai_response = result.get("response", "")
+                ai_response = result.get("data", {}).get("response", "")
 
                 # Update conversation history
                 self.conversation_history.append({"role": "user", "content": text})
