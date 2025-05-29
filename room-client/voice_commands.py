@@ -4,15 +4,16 @@ AI Voice Command Module for Aida Snapcast Client
 Handles speech-to-text recording and AI interaction
 """
 
-import os
 import json
+import logging
+import os
+import tempfile
+import threading
 import time
 import wave
-import logging
-import threading
-import tempfile
+from typing import Callable, Optional
+
 import requests
-from typing import Optional, Callable
 
 try:
     import pyaudio
@@ -38,13 +39,21 @@ class VoiceCommandHandler:
         self.channels = 1
         self.chunk_duration_ms = 30  # VAD requires 10, 20, or 30ms chunks
         self.chunk_size = int(self.sample_rate * self.chunk_duration_ms / 1000)
-        self.format = pyaudio.paInt16 if AUDIO_AVAILABLE else None
+        self.format = pyaudio.paInt16 if AUDIO_AVAILABLE else 0
 
         # Voice activity detection
         self.vad = None
         self.recording = False
         self.audio = None
         self.stream = None
+
+        # VAD sensitivity settings (higher values = less sensitive to background noise)
+        self.vad_aggressiveness = config.get(
+            "vad_aggressiveness", 3
+        )  # 0-3, 3 = most aggressive
+        self.silence_threshold = config.get(
+            "silence_threshold", 40
+        )  # frames of silence before stopping
 
         # Conversation history for context
         self.conversation_history = []
@@ -54,6 +63,13 @@ class VoiceCommandHandler:
         self.listening_enabled = (
             config.get("voice_commands_enabled", True) and AUDIO_AVAILABLE
         )
+
+        # Wake word settings
+        self.wake_word = "apartment"
+        self.wake_word_detected = False
+        self.wake_word_timeout = 120  # 2 minutes in seconds
+        self.last_wake_word_time = 0
+        self.wake_word_only_mode = True  # Start in wake word mode
 
         # Callback for when AI responds
         self.on_ai_response: Optional[Callable] = None
@@ -69,14 +85,19 @@ class VoiceCommandHandler:
             return
 
         try:
-            # Initialize VAD
-            self.vad = webrtcvad.Vad(2)  # Aggressiveness level 0-3
+            # Initialize VAD with configurable aggressiveness to reduce background noise
+            self.vad = webrtcvad.Vad(
+                self.vad_aggressiveness
+            )  # 0-3, higher = more aggressive filtering
 
             # Initialize PyAudio
             self.audio = pyaudio.PyAudio()
-            logger.info("Audio system initialized for voice commands")
+            logger.info(
+                "Audio system initialized for voice commands (VAD aggressiveness: %d)",
+                self.vad_aggressiveness,
+            )
 
-        except Exception as e:
+        except (OSError, ImportError, AttributeError) as e:
             logger.error("Failed to initialize audio: %s", e)
             self.listening_enabled = False
 
@@ -102,7 +123,7 @@ class VoiceCommandHandler:
             try:
                 self.stream.stop_stream()
                 self.stream.close()
-            except Exception as e:
+            except (OSError, AttributeError) as e:
                 logger.warning("Error stopping audio stream: %s", e)
             finally:
                 self.stream = None
@@ -124,13 +145,24 @@ class VoiceCommandHandler:
                 frames_per_buffer=self.chunk_size,
             )
 
-            logger.info("Voice command listening started")
+            logger.info(
+                "Voice command listening started in %s mode",
+                "wake word" if self.wake_word_only_mode else "command",
+            )
             audio_buffer = []
-            silence_threshold = 20  # frames of silence before stopping recording
+            silence_threshold = (
+                self.silence_threshold
+            )  # configurable frames of silence before stopping recording
             silence_count = 0
             recording_active = False
+            timeout_check_counter = 0  # Check timeout every ~100 iterations
 
             while self.recording:
+                # Periodically check wake word timeout
+                timeout_check_counter += 1
+                if timeout_check_counter >= 100:
+                    self._check_wake_word_timeout()
+                    timeout_check_counter = 0
                 try:
                     # Read audio chunk
                     audio_chunk = self.stream.read(
@@ -161,24 +193,27 @@ class VoiceCommandHandler:
                                 silence_count = 0
                                 audio_buffer = []
 
-                except Exception as e:
+                except (OSError, IOError) as e:
                     logger.error("Error in voice listening loop: %s", e)
                     time.sleep(0.1)
 
-        except Exception as e:
+        except (OSError, IOError) as e:
             logger.error("Failed to start voice listening: %s", e)
         finally:
             if self.stream:
                 try:
                     self.stream.stop_stream()
                     self.stream.close()
-                except Exception as e:
+                except (OSError, AttributeError) as e:
                     logger.warning("Error cleaning up audio stream: %s", e)
                 finally:
                     self.stream = None
 
     def _process_recorded_audio(self, audio_chunks):
         """Process recorded audio and send to AI"""
+        # Check wake word timeout first
+        self._check_wake_word_timeout()
+
         if len(audio_chunks) < 10:  # Too short
             logger.debug("Audio too short, ignoring")
             return
@@ -193,16 +228,39 @@ class VoiceCommandHandler:
                 temp_filename = temp_file.name
 
             # Write WAV file
-            with wave.open(temp_filename, "wb") as wav_file:
+            wav_file = wave.open(temp_filename, "wb")
+            try:
                 wav_file.setnchannels(self.channels)
                 wav_file.setsampwidth(2)  # 16-bit
                 wav_file.setframerate(self.sample_rate)
                 wav_file.writeframes(audio_data)
+            finally:
+                wav_file.close()
 
-            # Send to AI backend for processing
-            self._send_voice_command(temp_filename)
+            # First transcribe the audio to check for wake word
+            transcription = self._transcribe_audio(temp_filename)
 
-        except Exception as e:
+            if transcription:
+                logger.info("Voice transcribed: '%s'", transcription)
+                if self.wake_word_only_mode:
+                    # In wake word mode, only process if wake word is detected
+                    remaining_command = self._process_wake_word_detection(transcription)
+                    if remaining_command:
+                        # Process the command that came after the wake word
+                        self._send_ai_command(remaining_command, temp_filename)
+                else:
+                    # Not in wake word mode, process normally but still check for wake word
+                    wake_word_command = self._process_wake_word_detection(transcription)
+                    if wake_word_command:
+                        # Wake word was said again, process any additional command
+                        self._send_ai_command(wake_word_command, temp_filename)
+                    else:
+                        # Normal command processing
+                        self._send_ai_command(transcription, temp_filename)
+            else:
+                logger.warning("No transcription received from audio")
+
+        except (OSError, IOError, wave.Error) as e:
             logger.error("Failed to process recorded audio: %s", e)
         finally:
             # Clean up temp file
@@ -212,20 +270,16 @@ class VoiceCommandHandler:
                 except OSError:
                     pass
 
-    def _send_voice_command(self, audio_file_path):
-        """Send voice command to AI backend"""
+    def _transcribe_audio(self, audio_file_path: str) -> str:
+        """Transcribe audio file to text using the backend"""
         try:
-            logger.info("Sending voice command to AI backend")
-
-            # Prepare request data with explicit content type
             with open(audio_file_path, "rb") as audio_file:
                 files = {"audio": ("audio.wav", audio_file, "audio/wav")}
                 data = {
                     "roomName": self.room_name,
-                    "conversationHistory": json.dumps(self.conversation_history),
+                    "transcribeOnly": "true",  # Flag to only transcribe, not process as command
                 }
 
-                # Send to backend
                 response = requests.post(
                     f"{self.backend_url}/voice-command",
                     files=files,
@@ -235,10 +289,61 @@ class VoiceCommandHandler:
 
             if response.status_code == 200:
                 result = response.json()
-
-                # Extract data from the wrapped response
                 data = result.get("data", {})
-                transcription = data.get("transcription", "")
+                return data.get("transcription", "")
+            else:
+                logger.error("Transcription error: %s", response.text)
+                return ""
+
+        except requests.RequestException as e:
+            logger.error("Failed to transcribe audio: %s", e)
+            return ""
+        except (IOError, OSError) as e:
+            logger.error("Failed to read audio file %s: %s", audio_file_path, e)
+            return ""
+
+    def _send_ai_command(
+        self, command_text: str, audio_file_path: Optional[str] = None
+    ):
+        """Send command to AI backend (either text or with audio file)"""
+        if not command_text.strip():
+            logger.debug("Empty command, ignoring")
+            return None
+
+        try:
+            logger.info("Sending AI command: %s", command_text[:50])
+
+            if audio_file_path:
+                # Send with audio file
+                with open(audio_file_path, "rb") as audio_file:
+                    files = {"audio": ("audio.wav", audio_file, "audio/wav")}
+                    data = {
+                        "roomName": self.room_name,
+                        "conversationHistory": json.dumps(self.conversation_history),
+                        "overrideTranscription": command_text,  # Use our processed text
+                    }
+
+                    response = requests.post(
+                        f"{self.backend_url}/voice-command",
+                        files=files,
+                        data=data,
+                        timeout=30,
+                    )
+            else:
+                # Send as text command
+                data = {
+                    "message": command_text,
+                    "roomName": self.room_name,
+                    "conversationHistory": self.conversation_history,
+                }
+
+                response = requests.post(
+                    f"{self.backend_url}/chat", json=data, timeout=15
+                )
+
+            if response.status_code == 200:
+                result = response.json()
+                data = result.get("data", {})
                 ai_response = data.get("response", "")
                 audio_file = data.get("audioFile", "")
 
@@ -246,7 +351,7 @@ class VoiceCommandHandler:
 
                 # Update conversation history
                 self.conversation_history.append(
-                    {"role": "user", "content": transcription}
+                    {"role": "user", "content": command_text}
                 )
                 self.conversation_history.append(
                     {"role": "assistant", "content": ai_response}
@@ -259,58 +364,47 @@ class VoiceCommandHandler:
                     ]
 
                 # Trigger audio playback if callback is set
-                if self.on_ai_response and audio_file:
+                if self.on_ai_response and ai_response:
                     self.on_ai_response(ai_response, audio_file)
 
-                return {
-                    "transcription": transcription,
-                    "response": ai_response,
-                    "audio_file": audio_file,
-                }
-
-            else:
-                logger.error("AI backend error: %s", response.text)
-                return None
-
-        except requests.RequestException as e:
-            logger.error("Failed to send voice command: %s", e)
-            return None
-
-    def send_text_command(self, text: str):
-        """Send text command directly to AI (for testing)"""
-        try:
-            data = {
-                "message": text,
-                "roomName": self.room_name,
-                "conversationHistory": self.conversation_history,
-            }
-
-            response = requests.post(f"{self.backend_url}/chat", json=data, timeout=15)
-
-            if response.status_code == 200:
-                result = response.json()
-                ai_response = result.get("data", {}).get("response", "")
-
-                # Update conversation history
-                self.conversation_history.append({"role": "user", "content": text})
-                self.conversation_history.append(
-                    {"role": "assistant", "content": ai_response}
-                )
-
-                if len(self.conversation_history) > self.max_history * 2:
-                    self.conversation_history = self.conversation_history[
-                        -self.max_history * 2 :
-                    ]
-
-                logger.info("Text command response: %s", ai_response)
                 return ai_response
             else:
                 logger.error("AI backend error: %s", response.text)
                 return None
 
         except requests.RequestException as e:
-            logger.error("Failed to send text command: %s", e)
+            logger.error("Failed to send AI command: %s", e)
             return None
+
+    def send_text_command(self, text: str):
+        """Send text command directly to AI (for testing)"""
+        logger.info("Text command received: '%s'", text)
+
+        # Check wake word timeout first
+        self._check_wake_word_timeout()
+
+        if self.wake_word_only_mode:
+            # Check if text contains wake word
+            remaining_command = self._process_wake_word_detection(text)
+            if remaining_command:
+                # Process the command that came after the wake word
+                return self._send_ai_command(remaining_command)
+            elif self._detect_wake_word(text):
+                # Wake word detected but no additional command
+                logger.info("Wake word detected in text, ready for commands")
+                return "Wake word detected. Ready for commands."
+            else:
+                logger.info("Wake word not detected, ignoring command")
+                return "Please say 'Aida' first to activate voice commands."
+        else:
+            # Not in wake word mode, check if wake word is said again
+            wake_word_command = self._process_wake_word_detection(text)
+            if wake_word_command:
+                # Wake word was said again, process any additional command
+                return self._send_ai_command(wake_word_command)
+            else:
+                # Normal command processing
+                return self._send_ai_command(text)
 
     def cleanup(self):
         """Clean up resources"""
@@ -318,9 +412,64 @@ class VoiceCommandHandler:
         if self.audio:
             try:
                 self.audio.terminate()
-            except Exception as e:
+            except (OSError, AttributeError) as e:
                 logger.warning("Error terminating audio: %s", e)
         logger.info("Voice command handler cleaned up")
+
+    def _check_wake_word_timeout(self):
+        """Check if wake word timeout has expired and reset to wake word mode"""
+        if (
+            self.wake_word_detected
+            and time.time() - self.last_wake_word_time > self.wake_word_timeout
+        ):
+            self.wake_word_detected = False
+            self.wake_word_only_mode = True
+            logger.info("Wake word timeout expired, returning to wake word mode")
+
+    def _detect_wake_word(self, text: str) -> bool:
+        """Check if the transcribed text contains the wake word"""
+        if not text:
+            return False
+
+        # Simple case-insensitive check for wake word
+        words = text.lower().split()
+        return self.wake_word.lower() in words
+
+    def _process_wake_word_detection(self, transcription: str):
+        """Process wake word detection and update state"""
+        if self._detect_wake_word(transcription):
+            self.wake_word_detected = True
+            self.wake_word_only_mode = False
+            self.last_wake_word_time = time.time()
+            logger.info(
+                "Wake word 'Aida' detected, entering command mode for 2 minutes"
+            )
+
+            # Remove wake word from transcription for processing
+            words = transcription.lower().split()
+            filtered_words = [word for word in words if word != self.wake_word.lower()]
+            remaining_text = " ".join(filtered_words).strip()
+
+            # If there's additional text after the wake word, process it as a command
+            if remaining_text:
+                logger.info("Processing command after wake word: %s", remaining_text)
+                return remaining_text
+
+        return None
+
+    def get_status(self) -> dict:
+        """Get current status of voice command handler"""
+        return {
+            "listening_enabled": self.listening_enabled,
+            "recording": self.recording,
+            "wake_word_only_mode": self.wake_word_only_mode,
+            "wake_word_detected": self.wake_word_detected,
+            "time_until_timeout": max(
+                0, self.wake_word_timeout - (time.time() - self.last_wake_word_time)
+            )
+            if self.wake_word_detected
+            else 0,
+        }
 
 
 def test_voice_commands():
@@ -334,9 +483,10 @@ def test_voice_commands():
         print("pip install pyaudio webrtcvad")
         return
 
-    print("Voice command test started.")
+    print("Voice command test started with wake word 'Aida'.")
+    print("Say 'Aida' first to activate voice commands for 2 minutes.")
     print("Speak to test voice recognition or enter text commands.")
-    print("Say 'quit' to exit.")
+    print("Type 'status' to see current mode, 'quit' to exit.")
 
     def on_response(response, audio_file):
         print(f"AI Response: {response}")
@@ -348,9 +498,24 @@ def test_voice_commands():
 
     try:
         while True:
-            command = input("Enter text command (or 'quit'): ").strip()
+            status = handler.get_status()
+            mode = "WAKE WORD" if status["wake_word_only_mode"] else "COMMAND"
+            timeout = (
+                f" ({status['time_until_timeout']:.0f}s left)"
+                if status["wake_word_detected"]
+                else ""
+            )
+
+            command = input(
+                f"[{mode}{timeout}] Enter text command (or 'quit'/'status'): "
+            ).strip()
+
             if command.lower() == "quit":
                 break
+            elif command.lower() == "status":
+                print(f"Status: {status}")
+                continue
+
             if command:
                 response = handler.send_text_command(command)
                 print(f"Response: {response}")

@@ -8,6 +8,10 @@ import json
 import requests
 import sys
 import os
+
+# Add the room-client directory to the path so we can import voice_commands
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "room-client"))
+
 from voice_commands import VoiceCommandHandler
 
 

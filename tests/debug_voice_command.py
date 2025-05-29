@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """Debug script to test voice command connection"""
 
+import sys
+import os
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "room-client"))
+
 from voice_commands import VoiceCommandHandler
 import json
 import logging

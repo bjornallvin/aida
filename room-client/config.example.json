@@ -10,5 +10,7 @@
     "client_name": "aida-macos-dev",
     "voice_commands_enabled": true,
     "backend_url": "http://localhost:3000",
-    "ai_audio_playback": true
+    "ai_audio_playback": true,
+    "vad_aggressiveness": 3,
+    "silence_threshold": 40
 }

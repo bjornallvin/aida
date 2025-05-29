@@ -6,7 +6,7 @@ Test script for voice integration functionality
 import sys
 import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "room-client"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "room-client"))
 
 from client import SnapcastClient
 

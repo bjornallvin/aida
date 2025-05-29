@@ -159,6 +159,8 @@ The client uses a JSON configuration file stored at `/etc/aida/client.json`:
 - **voice_commands_enabled**: Enable AI voice interaction (requires dependencies)
 - **backend_url**: URL of Aida backend server for AI features
 - **ai_audio_playback**: Play AI responses through room speakers
+- **vad_aggressiveness**: Voice activity detection sensitivity (0-3, higher = less background noise, default: 3)
+- **silence_threshold**: Frames of silence before stopping recording (higher = less sensitive, default: 40)
 
 ## Usage
 
@@ -235,6 +237,27 @@ python3 -c "import pyaudio, webrtcvad; print('Voice deps OK')"
 # Test backend connection
 curl http://192.168.1.100:3000/health
 ```
+
+#### Voice Sensitivity Issues
+
+If the voice commands are picking up too much background noise:
+
+1. **Increase VAD aggressiveness** in your config:
+   ```json
+   "vad_aggressiveness": 3
+   ```
+   Values: 0 (least aggressive) to 3 (most aggressive)
+
+2. **Increase silence threshold** to require more silence before stopping:
+   ```json
+   "silence_threshold": 60
+   ```
+   Higher values = less sensitive to brief noises
+
+3. **Test your current settings**:
+   ```bash
+   python3 voice_commands.py
+   ```
 
 ## Audio Setup
 

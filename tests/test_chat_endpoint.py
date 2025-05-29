@@ -112,6 +112,10 @@ def test_voice_command_class():
 
     try:
         # Import the voice command handler
+        import sys
+        import os
+
+        sys.path.append(os.path.join(os.path.dirname(__file__), "..", "room-client"))
         from voice_commands import VoiceCommandHandler
 
         # Create a test config
