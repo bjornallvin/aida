@@ -6,6 +6,7 @@ import { config } from "./config";
 import { logger } from "./utils";
 import { createRoutes } from "./routes";
 import { requestLogger, errorHandler, notFoundHandler } from "./middleware";
+import { tradfriController } from "./tools/tradfriControl";
 
 /**
  * Aida Apartment AI Server
@@ -73,9 +74,37 @@ class AidaServer {
   }
 
   /**
+   * Initialize optional services
+   */
+  private async initializeServices(): Promise<void> {
+    // Initialize DIRIGERA connection if configured
+    if (process.env.DIRIGERA_GATEWAY_IP && process.env.DIRIGERA_ACCESS_TOKEN) {
+      try {
+        logger.info("Initializing DIRIGERA connection...");
+        const connected = await tradfriController.connect();
+        if (connected) {
+          const deviceCount = tradfriController.getDeviceCount();
+          logger.info("DIRIGERA connected successfully", { deviceCount });
+        } else {
+          logger.warning("Failed to connect to DIRIGERA hub at startup");
+        }
+      } catch (error) {
+        logger.warning("DIRIGERA initialization failed", {
+          error: (error as Error).message,
+        });
+      }
+    } else {
+      logger.info("DIRIGERA not configured - skipping initialization");
+    }
+  }
+
+  /**
    * Start the server
    */
-  public start(): void {
+  public async start(): Promise<void> {
+    // Initialize services first
+    await this.initializeServices();
+
     this.app.listen(config.port, () => {
       logger.info(`Aida apartment AI server started on port ${config.port}`);
       logger.info("Environment check", {
@@ -98,16 +127,18 @@ class AidaServer {
 
 // Create and start server if this file is run directly
 if (require.main === module) {
-  try {
-    const server = new AidaServer();
-    server.start();
-  } catch (error) {
-    logger.error("Failed to start server", {
-      error: (error as Error).message,
-      stack: (error as Error).stack,
-    });
-    process.exit(1);
-  }
+  (async () => {
+    try {
+      const server = new AidaServer();
+      await server.start();
+    } catch (error) {
+      logger.error("Failed to start server", {
+        error: (error as Error).message,
+        stack: (error as Error).stack,
+      });
+      process.exit(1);
+    }
+  })();
 }
 
 export default AidaServer;

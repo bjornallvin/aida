@@ -26,6 +26,24 @@ export interface VoiceCommandRequest {
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
+  toolCalls?: ToolCall[];
+  toolCallId?: string;
+}
+
+export interface ToolCall {
+  id: string;
+  type: "function";
+  function: {
+    name: string;
+    arguments: string;
+  };
+}
+
+export interface ToolExecutionResult {
+  success: boolean;
+  message: string;
+  data?: any;
+  error?: string;
 }
 
 export interface MopidyTrack {
@@ -65,6 +83,8 @@ export interface TTSResponse {
 
 export interface ChatResponse {
   response: string;
+  toolCalls?: ToolCall[];
+  toolResults?: ToolExecutionResult[];
   usage?: {
     total_tokens: number;
     prompt_tokens: number;

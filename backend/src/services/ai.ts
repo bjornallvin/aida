@@ -8,9 +8,12 @@ import {
   ChatResponse,
   VoiceCommandResponse,
   AudioFileRequest,
+  ToolCall,
+  ToolExecutionResult,
 } from "../types";
 import { logger } from "../utils";
 import { config } from "../config";
+import { SMART_HOME_TOOLS, SmartHomeToolExecutor } from "../tools";
 
 /**
  * AI service for handling chat and voice interactions
@@ -19,6 +22,7 @@ import { config } from "../config";
 export class AIService {
   private openaiClient: OpenAIClient;
   private elevenlabsClient: ElevenLabsClient;
+  private toolExecutor: SmartHomeToolExecutor;
 
   constructor(
     openaiClient?: OpenAIClient,
@@ -26,6 +30,7 @@ export class AIService {
   ) {
     this.openaiClient = openaiClient || new OpenAIClient();
     this.elevenlabsClient = elevenlabsClient || new ElevenLabsClient();
+    this.toolExecutor = new SmartHomeToolExecutor();
   }
 
   /**
@@ -68,7 +73,7 @@ export class AIService {
   }
 
   /**
-   * Process chat completion request
+   * Process chat completion request with tool calling support
    */
   public async processChat(request: ChatRequest): Promise<ChatResponse> {
     const { message, roomName, conversationHistory = [] } = request;
@@ -91,18 +96,87 @@ export class AIService {
       { role: "user" as const, content: message },
     ];
 
+    // First API call with tools
     const result = await this.openaiClient.createChatCompletion(messages, {
       maxTokens: 300,
       temperature: 0.7,
+      tools: SMART_HOME_TOOLS,
+      toolChoice: "auto",
     });
 
+    let toolResults: ToolExecutionResult[] = [];
+    let finalResponse = result.response;
+
+    // Handle tool calls if present
+    if (result.toolCalls && result.toolCalls.length > 0) {
+      logger.info("Processing tool calls", { count: result.toolCalls.length });
+
+      // Execute each tool call
+      for (const toolCall of result.toolCalls) {
+        try {
+          const parameters = JSON.parse(toolCall.function.arguments);
+          const toolResult = await this.toolExecutor.executeToolCall(
+            toolCall.function.name,
+            parameters
+          );
+
+          toolResults.push(toolResult);
+          logger.info("Tool executed", {
+            tool: toolCall.function.name,
+            success: toolResult.success,
+            message: toolResult.message,
+          });
+
+          // Add tool call and result to conversation history
+          messages.push({
+            role: "assistant" as const,
+            content: "",
+            toolCalls: [toolCall],
+          });
+
+          messages.push({
+            role: "user" as const,
+            content: JSON.stringify(toolResult),
+            toolCallId: toolCall.id,
+          });
+        } catch (error) {
+          logger.error("Tool execution failed", {
+            tool: toolCall.function.name,
+            error: error instanceof Error ? error.message : String(error),
+          });
+
+          toolResults.push({
+            success: false,
+            message: `Failed to execute ${toolCall.function.name}`,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+
+      // Get final response after tool execution
+      const finalResult = await this.openaiClient.createChatCompletion(
+        messages,
+        {
+          maxTokens: 300,
+          temperature: 0.7,
+        }
+      );
+
+      finalResponse = finalResult.response;
+    }
+
     logger.info("Chat completion successful", {
-      responseLength: result.response.length,
+      responseLength: finalResponse.length,
       tokensUsed: result.usage?.total_tokens,
+      toolCallsCount: result.toolCalls?.length || 0,
+      toolResultsCount: toolResults.length,
     });
 
     return {
-      response: result.response,
+      response: finalResponse,
+      ...(result.toolCalls &&
+        result.toolCalls.length > 0 && { toolCalls: result.toolCalls }),
+      ...(toolResults.length > 0 && { toolResults }),
       usage: result.usage,
     };
   }

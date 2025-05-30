@@ -9,7 +9,7 @@ print("=" * 50)
 print("Testing /chat endpoint...")
 try:
     data = {
-        "message": "Hello Aida, can you hear me?",
+        "message": "Hello Aida, list  my light devices",
         "roomName": "test_room",
         "conversationHistory": [],
     }
@@ -21,7 +21,7 @@ try:
     if response.status_code == 200:
         result = response.json()
         print("✅ SUCCESS!")
-        print(f"AI Response: {result.get('response', 'No response')}")
+        print(f"AI Response: {result.get('data', 'No response')}")
         print(f"Success: {result.get('success', False)}")
         print(f"Timestamp: {result.get('timestamp', 'No timestamp')}")
     else:
