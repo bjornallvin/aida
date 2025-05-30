@@ -13,6 +13,7 @@ import requests
 
 from ..audio import AudioManager, VoiceActivityDetector
 from ..stt import create_stt_engine
+from .wake_word_detector import WakeWordDetector
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +72,14 @@ class VoiceCommandHandler:
         self.wake_word_timeout = config.get("wake_word_timeout", 120)
         self.last_wake_word_time = 0
         self.wake_word_only_mode = True
+
+        # Initialize robust wake word detector
+        self.wake_word_detector = WakeWordDetector(
+            wake_word=self.wake_word,
+            similarity_threshold=config.get("wake_word_similarity_threshold", 0.6),
+            phonetic_matching=config.get("wake_word_phonetic_matching", True),
+            custom_variations=config.get("wake_word_variations", []),
+        )
 
         # Callback for when AI responds
         # Accepts a string response
@@ -186,10 +195,16 @@ class VoiceCommandHandler:
 
                 # Check for wake word or process command
                 if self.wake_word_only_mode:
-                    if self.wake_word.lower() in text.lower():
+                    detection_result = self.wake_word_detector.detect_wake_word(text)
+                    if detection_result["detected"]:
                         self.wake_word_detected = True
                         self.last_wake_word_time = time.time()
-                        logger.info("Wake word detected!")
+                        logger.info(
+                            "Wake word detected! Method: %s, Matched: '%s', Confidence: %.2f",
+                            detection_result["method"],
+                            detection_result["matched_word"],
+                            detection_result["confidence"],
+                        )
                         return
 
                 # Process as command if wake word was detected recently
@@ -305,7 +320,7 @@ class VoiceCommandHandler:
 
     def get_status(self) -> Dict[str, Any]:
         """Get voice command handler status"""
-        return {
+        status = {
             "listening_enabled": self.listening_enabled,
             "recording": self.recording,
             "stt_available": self.stt_engine is not None,
@@ -314,3 +329,23 @@ class VoiceCommandHandler:
             "wake_word_only_mode": self.wake_word_only_mode,
             "conversation_history_length": len(self.conversation_history),
         }
+
+        # Add wake word detector status
+        if hasattr(self, "wake_word_detector"):
+            status["wake_word_detector"] = self.wake_word_detector.get_status()
+
+        return status
+
+    def add_wake_word_variation(self, variation: str) -> None:
+        """Add a new wake word variation"""
+        if hasattr(self, "wake_word_detector"):
+            self.wake_word_detector.add_variation(variation)
+            logger.info("Added wake word variation: '%s'", variation)
+
+    def test_wake_word_detection(self, test_text: str) -> Dict[str, Any]:
+        """Test wake word detection with given text"""
+        if hasattr(self, "wake_word_detector"):
+            result = self.wake_word_detector.detect_wake_word(test_text)
+            logger.info("Wake word test - Input: '%s', Result: %s", test_text, result)
+            return result
+        return {"error": "Wake word detector not available"}

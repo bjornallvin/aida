@@ -2,6 +2,15 @@
 Voice package
 """
 
-from .handler import VoiceCommandHandler
+from .wake_word_detector import WakeWordDetector
 
-__all__ = ["VoiceCommandHandler"]
+
+# Only import handler when needed to avoid dependency issues
+def get_voice_command_handler():
+    """Lazy import of VoiceCommandHandler to avoid circular dependencies"""
+    from .handler import VoiceCommandHandler
+
+    return VoiceCommandHandler
+
+
+__all__ = ["WakeWordDetector", "get_voice_command_handler"]

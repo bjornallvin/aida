@@ -10,7 +10,7 @@ import time
 from typing import Dict, Any, Optional
 
 from ..config import ConfigManager
-from ..voice import VoiceCommandHandler
+from ..voice import get_voice_command_handler
 from ..audio import AudioManager
 from ..utils import IS_MACOS, IS_LINUX, IS_WINDOWS
 
@@ -42,6 +42,7 @@ class SnapcastClient:
     def init_voice_commands(self):
         """Initialize voice command handler"""
         try:
+            VoiceCommandHandler = get_voice_command_handler()
             self.voice_handler = VoiceCommandHandler(
                 config=self.config,
                 backend_url=self.config.get("backend_url", "http://localhost:3000"),
