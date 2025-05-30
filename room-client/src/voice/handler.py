@@ -68,7 +68,7 @@ class VoiceCommandHandler:
         )
 
         # Wake word settings
-        self.wake_word = config.get("wake_word", "apartment")
+        self.wake_word = config.get("wake_word", "aida")
         self.wake_word_detected = False
         self.wake_word_timeout = config.get("wake_word_timeout", 120)
         self.last_wake_word_time = 0

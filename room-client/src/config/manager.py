@@ -34,7 +34,7 @@ class ConfigManager:
         },
         "vad_aggressiveness": 3,
         "silence_threshold": 40,
-        "wake_word": "apartment",
+        "wake_word": "aida",
         "wake_word_timeout": 120,
         "test_audio_on_start": False,
     }

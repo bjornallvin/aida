@@ -26,18 +26,18 @@ def test_wake_word_simple():
 
     # Create detector
     detector = WakeWordDetector(
-        wake_word="apartment",
+        wake_word="aida",
         similarity_threshold=0.6,
         phonetic_matching=True,
-        custom_variations=["aida"],
+        custom_variations=["apartment"],
     )
 
     # Test cases
     test_cases = [
-        ("apartment turn on lights", True),  # Exact match
-        ("apartmint help me", True),  # Variation
-        ("apartement what time", True),  # Misspelling
-        ("aida set timer", True),  # Custom variation
+        ("aida turn on lights", True),  # Exact match
+        ("ayda help me", True),  # Variation
+        ("ada what time", True),  # Short variation
+        ("apartment set timer", True),  # Custom variation (backward compatibility)
         ("elephant in room", False),  # Should not match
         ("important meeting", False),  # Should not match
     ]

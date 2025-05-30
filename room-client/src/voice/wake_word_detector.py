@@ -31,7 +31,7 @@ class WakeWordDetector:
         Initialize wake word detector
 
         Args:
-            wake_word: Primary wake word (e.g., "apartment")
+            wake_word: Primary wake word (e.g., "aida")
             similarity_threshold: Minimum similarity score (0.0-1.0)
             phonetic_matching: Enable phonetic (Soundex) matching
             custom_variations: Additional variations/aliases for the wake word
@@ -82,6 +82,27 @@ class WakeWordDetector:
                     "a part ment",  # Split words
                     "apart mint",  # Split words
                     "apart ment",  # Split words
+                ]
+            )
+
+        # Generate common transcription variations for "aida"
+        if self.wake_word == "aida":
+            variations.update(
+                [
+                    "aida",
+                    "ada",  # Missing 'i'
+                    "ida",  # Missing 'a'
+                    "aida",  # Proper pronunciation
+                    "ayda",  # Phonetic spelling
+                    "eida",  # Vowel confusion
+                    "eda",  # Vowel confusion 2
+                    "aeda",  # Extra vowel
+                    "ayde",  # Alternative spelling
+                    "aide",  # Common misspelling
+                    "aidah",  # With H
+                    "hey aida",  # Natural speaking
+                    "hi aida",  # Natural greeting
+                    "a i d a",  # Spelled out
                 ]
             )
 
