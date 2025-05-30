@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Test Backend Communication for Aida Snapcast Client
-Tests the /chat endpoint communication between client and backend
+Tests the /chat endpoint communication between client and backend with type checking
 """
 
 import json
@@ -9,6 +9,7 @@ import os
 import requests
 import sys
 from pathlib import Path
+from typing import Dict, Any
 
 # Add the room-client directory to the path for proper module structure
 room_client_path = str(Path(__file__).parent.parent)
@@ -16,15 +17,64 @@ if room_client_path not in sys.path:
     sys.path.insert(0, room_client_path)
 
 from src.voice.handler import VoiceCommandHandler
+from src.schemas import HealthResponse, ChatResponse, HealthData
+
+# Import our schemas for validation
+try:
+    from src.schemas import ResponseValidator
+
+    SCHEMAS_AVAILABLE = True
+except ImportError:
+    print("⚠️  Schemas not available - install pydantic for full validation")
+    SCHEMAS_AVAILABLE = False
+
+
+def validate_response_schema(
+    response_data: Dict[str, Any], schema_name: str
+) -> tuple[bool, str, Any]:
+    """Validate response using appropriate schema"""
+    if not SCHEMAS_AVAILABLE:
+        return True, "Schema validation skipped (pydantic not available)", response_data
+
+    try:
+        if schema_name == "health":
+            validated = ResponseValidator.validate_health_response(response_data)
+        elif schema_name == "chat":
+            validated = ResponseValidator.validate_chat_response(response_data)
+        else:
+            return False, f"Unknown schema: {schema_name}", None
+
+        return True, "Schema validation passed", validated
+    except Exception as e:
+        return False, f"Schema validation failed: {e}", None
 
 
 def test_health_endpoint(backend_url):
-    """Test if backend is running and responding"""
+    """Test if backend is running and responding with schema validation"""
     try:
         response = requests.get(f"{backend_url}/health", timeout=5)
         if response.status_code == 200:
+            response_data = response.json()
             print("✅ Backend health check passed")
-            print(f"   Response: {response.json()}")
+            print(f"   Response: {response_data}")
+
+            # Validate response schema
+            is_valid, message, validated_data = validate_response_schema(
+                response_data, "health"
+            )
+            if is_valid and SCHEMAS_AVAILABLE:
+                print(f"   ✅ Schema validation: {message}")
+                # Access validated data
+                health_data: HealthData = validated_data.data
+                print(f"   📊 Status: {health_data.status}")
+                print(f"   🕒 Uptime: {health_data.uptime}")
+
+            elif not is_valid:
+                print(f"   ⚠️  Schema validation: {message}")
+                # Still continue test but log the issue
+            else:
+                print(f"   ℹ️  {message}")
+
             return True
         else:
             print(f"❌ Backend health check failed: {response.status_code}")
@@ -51,10 +101,10 @@ def test_chat_endpoint(backend_url, room_name="test_room"):
         response = requests.post(f"{backend_url}/chat", json=test_data, timeout=30)
 
         if response.status_code == 200:
-            result = response.json()
+            result = response.json().get("data", {})
             print("✅ Chat endpoint test passed")
             print(f"   User message: {test_message}")
-            print(f"   AI response: {result.get('response', 'No response')}")
+            print(f"   AI response:{result.get('response', 'No response')}")
             print(f"   Usage: {result.get('usage', 'No usage data')}")
             return True
         else:

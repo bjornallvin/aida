@@ -14,6 +14,7 @@ import requests
 from ..audio import AudioManager, VoiceActivityDetector
 from ..stt import create_stt_engine
 from .wake_word_detector import WakeWordDetector
+from ..schemas import APIResponse, ChatData, ResponseValidator
 
 logger = logging.getLogger(__name__)
 
@@ -280,8 +281,24 @@ class VoiceCommandHandler:
             )
 
             if response.status_code == 200:
-                data = response.json()
-                ai_response = data.get("response", "")
+                json = response.json()
+                if not json or "data" not in json:
+                    logger.error("Invalid response from backend: %s", json)
+                    return None
+
+                result: APIResponse[ChatData] = (
+                    ResponseValidator.validate_chat_response(json)
+                )
+                if not result.data:
+                    logger.error("No data in response from backend")
+                    return None
+
+                data: Optional[ChatData] = result.data
+                if not data:
+                    logger.error("No data returned from backend")
+                    return None
+
+                ai_response = data.response
 
                 # Add AI response to history
                 if ai_response:
