@@ -14,7 +14,6 @@ import requests
 from ..audio import AudioManager, VoiceActivityDetector
 from ..stt import create_stt_engine
 from .wake_word_detector import WakeWordDetector
-from ..schemas import APIResponse, ChatData, ResponseValidator
 
 logger = logging.getLogger(__name__)
 
@@ -83,8 +82,8 @@ class VoiceCommandHandler:
         )
 
         # Callback for when AI responds
-        # Accepts a string response
-        self.on_ai_response: Optional[Callable[[str], None]] = None
+        # Accepts response text and audio file URL
+        self.on_ai_response: Optional[Callable[[str, str], None]] = None
 
     def start_listening(self):
         """Start listening for voice commands in background thread"""
@@ -241,19 +240,21 @@ class VoiceCommandHandler:
     def _process_voice_command(self, text: str):
         """Process a voice command through the AI backend"""
         try:
-            response = self.send_text_command(text)
-            if response and self.on_ai_response:
-                self._call_ai_response_callback(response)
+            result = self.send_text_command(text)
+            if result and self.on_ai_response:
+                # result is now a tuple of (response_text, audio_file_url)
+                response_text, audio_file_url = result
+                self._call_ai_response_callback(response_text, audio_file_url)
         except (OSError, IOError) as e:
             logger.error("Error processing voice command: %s", e)
 
-    def _call_ai_response_callback(self, response: str):
+    def _call_ai_response_callback(self, response: str, audio_file: str = ""):
         """Helper method to call the AI response callback"""
         if self.on_ai_response:
-            self.on_ai_response(response)  # pylint: disable=not-callable
+            self.on_ai_response(response, audio_file)  # pylint: disable=not-callable
 
-    def send_text_command(self, text: str) -> Optional[str]:
-        """Send text command to AI backend"""
+    def send_text_command(self, text: str) -> Optional[tuple[str, str]]:
+        """Send text command to AI backend - returns (response_text, audio_file_url)"""
         try:
             # Add to conversation history
             self.conversation_history.append({"role": "user", "content": text})
@@ -264,50 +265,44 @@ class VoiceCommandHandler:
                     -self.max_history :
                 ]
 
-            # Prepare request
+            # Prepare request for text-voice-command endpoint
             payload = {
                 "message": text,
-                "room": self.room_name,
-                "conversation_history": self.conversation_history,
+                "roomName": self.room_name,
+                "conversationHistory": self.conversation_history,
                 "source": "voice_command",
             }
 
-            # Send to backend
+            # Send to text-voice-command endpoint
             response = requests.post(
-                f"{self.backend_url}/chat",
+                f"{self.backend_url}/text-voice-command",
                 json=payload,
                 timeout=30,
                 headers={"Content-Type": "application/json"},
             )
 
             if response.status_code == 200:
-                json = response.json()
-                if not json or "data" not in json:
-                    logger.error("Invalid response from backend: %s", json)
+                json_response = response.json()
+                if not json_response or "data" not in json_response:
+                    logger.error("Invalid response from backend: %s", json_response)
                     return None
 
-                result: APIResponse[ChatData] = (
-                    ResponseValidator.validate_chat_response(json)
-                )
-                if not result.data:
-                    logger.error("No data in response from backend")
-                    return None
+                data = json_response["data"]
+                ai_response = data.get("response", "")
+                audio_file = data.get("audioFile", "")
 
-                data: Optional[ChatData] = result.data
-                if not data:
-                    logger.error("No data returned from backend")
+                if not ai_response:
+                    logger.error("No response text returned from backend")
                     return None
-
-                ai_response = data.response
 
                 # Add AI response to history
-                if ai_response:
-                    self.conversation_history.append(
-                        {"role": "assistant", "content": ai_response}
-                    )
+                self.conversation_history.append(
+                    {"role": "assistant", "content": ai_response}
+                )
 
                 logger.info("AI Response: %s", ai_response)
-                return ai_response
+                logger.info("Audio file: %s", audio_file)
+                return (ai_response, audio_file)
             else:
                 logger.error(
                     "Backend error: %s - %s", response.status_code, response.text

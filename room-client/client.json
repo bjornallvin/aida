@@ -1,6 +1,6 @@
 {
   "room_name": "unknown",
-  "server_host": "192.168.1.100",
+  "server_host": "localhost",
   "server_port": 1704,
   "sound_card": "default",
   "volume": 50,
@@ -8,8 +8,8 @@
   "retry_interval": 10,
   "max_retries": -1,
   "client_name": null,
-  "voice_commands_enabled": false,
-  "backend_url": "http://192.168.1.100:3000",
+  "voice_commands_enabled": true,
+  "backend_url": "http://localhost:3000",
   "ai_audio_playback": true,
   "use_native_stt": true,
   "stt_config": {

@@ -160,7 +160,7 @@ export class AIService {
   /**
    * Generate TTS audio for AI response
    */
-  private async generateResponseAudio(text: string): Promise<string> {
+  public async generateResponseAudio(text: string): Promise<string> {
     const audioStream = await this.elevenlabsClient.generateTTS(text);
     const responseAudioFile = path.join(
       config.audioDir,

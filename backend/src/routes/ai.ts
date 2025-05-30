@@ -167,6 +167,51 @@ export class AIController {
       res.status(500).json(response);
     }
   }
+
+  /**
+   * Handle text-based voice commands (Chat + TTS)
+   */
+  public async textVoiceCommand(req: Request, res: Response): Promise<void> {
+    try {
+      const chatRequest: ChatRequest = req.body;
+
+      // Process chat completion
+      const chatResult = await this.aiService.processChat(chatRequest);
+
+      // Generate TTS audio file for the response
+      const responseAudioFile = await this.aiService.generateResponseAudio(
+        chatResult.response
+      );
+
+      const result: VoiceCommandResponse = {
+        transcription: chatRequest.message, // Use the input text as "transcription"
+        response: chatResult.response,
+        audioFile: `/audio/${require("path").basename(responseAudioFile)}`,
+        usage: chatResult.usage,
+      };
+
+      const response: APIResponse<VoiceCommandResponse> = {
+        success: true,
+        timestamp: new Date().toISOString(),
+        data: result,
+      };
+
+      res.json(response);
+    } catch (error) {
+      logger.error("Text voice command processing failed", {
+        error: (error as Error).message,
+      });
+
+      const response: APIResponse = {
+        success: false,
+        error: "Text voice command processing failed",
+        details: (error as Error).message,
+        timestamp: new Date().toISOString(),
+      };
+
+      res.status(500).json(response);
+    }
+  }
 }
 
 export default AIController;

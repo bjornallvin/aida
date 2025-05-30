@@ -57,10 +57,106 @@ class SnapcastClient:
             logger.error("Failed to initialize voice commands: %s", e)
             self.voice_handler = None
 
-    def _handle_ai_response(self, response: str):
-        """Handle AI response - could trigger TTS playback"""
-        logger.info("AI Response received: %s", response)
-        # TODO: Implement TTS playback if needed
+    def _handle_ai_response(self, response_text: str, audio_file_url: str):
+        """Handle AI response by playing audio"""
+        if not self.config.get("ai_audio_playback", True):
+            logger.info("AI audio playback disabled")
+            return
+
+        if not audio_file_url:
+            logger.info("No audio file URL provided")
+            return
+
+        try:
+            # Convert relative URL to absolute if needed
+            if audio_file_url.startswith("/"):
+                backend_url = self.config.get("backend_url", "http://localhost:3000")
+                audio_url = f"{backend_url.rstrip('/')}{audio_file_url}"
+            else:
+                audio_url = audio_file_url
+
+            logger.info("Playing AI response: %s", response_text[:50])
+
+            # Download audio file
+            import requests
+
+            response = requests.get(audio_url, timeout=10)
+            if response.status_code == 200:
+                # Save to temporary file and play
+                import tempfile
+                import os
+
+                with tempfile.NamedTemporaryFile(
+                    suffix=".mp3", delete=False
+                ) as temp_file:
+                    temp_file.write(response.content)
+                    temp_filename = temp_file.name
+
+                # Play audio using platform-specific audio player
+                audio_played = False
+
+                if IS_MACOS:
+                    # macOS: Use afplay (built-in)
+                    try:
+                        subprocess.run(
+                            ["afplay", temp_filename],
+                            check=True,
+                            capture_output=True,
+                            timeout=30,
+                        )
+                        audio_played = True
+                        logger.info("Audio played using afplay (macOS)")
+                    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+                        logger.warning("afplay failed: %s", e)
+
+                if not audio_played:
+                    # Try mpg123 (Linux/cross-platform)
+                    try:
+                        subprocess.run(
+                            ["mpg123", temp_filename],
+                            check=True,
+                            capture_output=True,
+                            timeout=30,
+                        )
+                        audio_played = True
+                        logger.info("Audio played using mpg123")
+                    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+                        logger.warning("mpg123 failed: %s", e)
+
+                if not audio_played:
+                    # Fallback to mpv
+                    try:
+                        subprocess.run(
+                            ["mpv", "--no-video", temp_filename],
+                            check=True,
+                            capture_output=True,
+                            timeout=30,
+                        )
+                        audio_played = True
+                        logger.info("Audio played using mpv")
+                    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+                        logger.warning("mpv failed: %s", e)
+
+                if not audio_played:
+                    logger.warning(
+                        "No audio player found (tried: %s)",
+                        "afplay, mpg123, mpv" if IS_MACOS else "mpg123, mpv",
+                    )
+
+                # Clean up temp file
+                try:
+                    os.unlink(temp_filename)
+                except OSError:
+                    pass
+
+                logger.info("AI response audio played successfully")
+            else:
+                logger.error(
+                    "Failed to download AI audio: HTTP %s", response.status_code
+                )
+
+        except Exception as e:
+            logger.error("Failed to play AI response audio: %s", e)
 
     def check_dependencies(self) -> bool:
         """Check if snapclient is installed"""
@@ -280,7 +376,12 @@ class SnapcastClient:
     def send_text_command(self, text: str) -> Optional[str]:
         """Send a text command through voice handler"""
         if self.voice_handler:
-            return self.voice_handler.send_text_command(text)
+            result = self.voice_handler.send_text_command(text)
+            if result:
+                # Extract just the response text from the tuple (response_text, audio_file_url)
+                response_text, _ = result
+                return response_text
+            return None
         else:
             logger.warning("Voice handler not available")
             return None

@@ -72,5 +72,11 @@ export function createRoutes(): Router {
     (req: any, res: Response) => aiController.voiceCommand(req, res)
   );
 
+  router.post(
+    "/text-voice-command",
+    validateRequired(["message"]),
+    aiController.textVoiceCommand.bind(aiController)
+  );
+
   return router;
 }
