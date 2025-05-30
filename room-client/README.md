@@ -31,40 +31,31 @@ room-client/
 │   ├── install-pi.sh            # Raspberry Pi setup
 │   └── deploy-to-pis.sh         # Bulk deployment
 ├── scripts/                      # Development scripts
+│   ├── activate.sh              # Virtual environment activation
 │   ├── start_modular.sh         # Start modular client
-│   ├── start_legacy.sh          # Start legacy client
-│   ├── test_modular.sh          # Test setup
-│   └── migrate_to_modular.py    # Migration helper
+│   └── test_modular.sh          # Test setup
 ├── docs/                         # Documentation
 │   ├── MODULAR_STRUCTURE.md     # Architecture details
 │   ├── MODULARIZATION_COMPLETE.md
 │   └── MACOS_COMPATIBILITY.md   # macOS setup guide
-├── legacy/                       # Legacy implementations
-│   ├── client.py                # Original client
-│   ├── voice_commands.py        # Original voice handling
-│   └── setup.py                 # Legacy setup
 ├── configs/                      # Configuration examples
 │   ├── client-pi.json           # Pi-specific config
 │   ├── config-examples.json     # Example configurations
 │   └── *.backup                 # Configuration backups
 ├── optimization/                 # Hardware optimizations
 │   └── pi_optimization.py       # Raspberry Pi tuning
-├── main.py                       # Modular entry point
+├── tests/                        # Test files
+├── venv/                         # Python virtual environment
+├── main.py                       # Main entry point
 ├── client.json                   # Active configuration
-├── requirements.txt              # Dependencies
-└── setup_modular.py             # Modular setup
+└── requirements.txt              # Dependencies
 ```
 
 ### Quick Start Guide
 
-**Primary Usage (Modular Architecture):**
+**Primary Usage (Current Architecture):**
 ```bash
 python main.py --config client.json
-```
-
-**Legacy Usage (Backward Compatible):**
-```bash
-python legacy/client.py --config client.json
 ```
 
 **Development & Testing:**
@@ -77,6 +68,27 @@ python legacy/client.py --config client.json
 ```bash
 sudo ./deployment/install-pi.sh  # Install on Raspberry Pi
 ./deployment/deploy-to-pis.sh    # Deploy to multiple Pis
+```
+
+## Quick Development Setup
+
+For development on macOS or Linux:
+
+```bash
+# Clone and setup
+cd /path/to/aida/room-client
+
+# Create virtual environment and install dependencies
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Copy and edit configuration
+cp configs/config-examples.json client.json
+# Edit client.json with your settings
+
+# Test the setup
+python main.py --test-audio
 ```
 
 ## Installation on Raspberry Pi
@@ -108,8 +120,8 @@ sudo apt install portaudio19-dev python3-dev
 sudo pip3 install pyaudio webrtcvad requests
 
 # Copy client files to /opt/aida/room-client/
-# Run setup
-sudo python3 setup.py
+# Run pip install for dependencies
+sudo pip3 install -r requirements.txt
 ```
 
 ## Installation on macOS
@@ -209,7 +221,7 @@ pip install webrtcvad
 ```bash
 # Use the convenience activation script
 cd /path/to/aida/room-client
-source activate.sh
+source scripts/activate.sh
 
 # This will activate the virtual environment and show available commands
 ```
@@ -217,24 +229,24 @@ source activate.sh
 ### Usage on macOS
 ```bash
 # Method 1: Use activation script (recommended)
-source activate.sh
-python client.py --test-audio
+source scripts/activate.sh
+python main.py --test-audio
 
 # Method 2: Manual activation
 source venv/bin/activate
-python client.py --config ~/Library/Application\ Support/Aida/client.json
+python main.py --config ~/Library/Application\ Support/Aida/client.json
 
 # Test audio output
-python client.py --test-audio
+python main.py --test-audio
 
 # List available audio devices
-python3 client.py --list-cards
+python main.py --list-cards
 
 # Interactive setup
-python3 client.py --setup
+python main.py --setup
 
 # Test voice commands (if enabled)
-python3 client.py --test-voice
+python main.py --test-voice
 ```
 
 ### macOS-Specific Notes
@@ -258,7 +270,14 @@ python3 client.py --test-voice
 
 ## Configuration
 
-The client uses a JSON configuration file stored at `/etc/aida/client.json`:
+The client uses a JSON configuration file. Configuration file locations:
+
+- **Development**: `./client.json` (current directory)
+- **Raspberry Pi**: `/etc/aida/client.json` (system-wide)
+- **macOS**: `~/Library/Application Support/Aida/client.json`
+- **Linux**: `~/.config/aida/client.json` (user-specific)
+
+Example configuration:
 
 ```json
 {
@@ -296,7 +315,8 @@ The client uses a JSON configuration file stored at `/etc/aida/client.json`:
 
 ## Usage
 
-After installation, use the `aida-client` command:
+### On Raspberry Pi (after installation)
+Use the `aida-client` command:
 
 ```bash
 # Start the client
@@ -322,12 +342,43 @@ aida-client test-audio
 
 # Test voice commands (if enabled)
 aida-client test-voice
+```
+
+### Development Usage (macOS/Linux)
+Use the main entry point directly. For development, it's recommended to use a virtual environment:
+
+```bash
+# First time setup (if not already done)
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Daily development usage
+source scripts/activate.sh  # Activates venv and shows commands
+
+# Or manually
+source venv/bin/activate
+
+# Start the client
+python main.py --config client.json
 
 # Enable voice commands for this session
-python3 client.py --enable-voice
+python main.py --enable-voice
 
-# Interactive voice command testing
-python3 voice_commands.py
+# Test audio output
+python main.py --test-audio
+
+# List available audio devices
+python main.py --list-cards
+
+# Interactive setup
+python main.py --setup
+
+# Test voice commands (if enabled)
+python main.py --test-voice
+
+# Interactive voice testing (if voice handler exists)
+python -c "from src.voice.handler import VoiceHandler; VoiceHandler().test()"
 ```
 
 ## Voice Commands
@@ -388,7 +439,7 @@ If the voice commands are picking up too much background noise:
 
 3. **Test your current settings**:
    ```bash
-   python3 voice_commands.py
+   python main.py --test-voice
    ```
 
 ## Audio Setup
