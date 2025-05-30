@@ -149,6 +149,62 @@ mkdir -p ~/Library/Application\ Support/Aida
 cp config.example.json ~/Library/Application\ Support/Aida/client.json
 ```
 
+## Installation on Linux/WSL Ubuntu
+
+The Aida room client supports Linux development environments, including WSL (Windows Subsystem for Linux) with Ubuntu.
+
+### Prerequisites
+```bash
+# Update system packages
+sudo apt update && sudo apt upgrade -y
+
+# Install Python development headers and build tools
+sudo apt install python3-dev python3-pip build-essential
+
+# Install audio development libraries (required for pyaudio and webrtcvad)
+sudo apt install portaudio19-dev libasound2-dev
+
+# Optional: Install additional audio libraries if needed
+sudo apt install libjack-jackd2-dev libpulse-dev
+```
+
+### Installation
+```bash
+# Navigate to the room-client directory
+cd /path/to/aida/room-client
+
+# Create and activate Python virtual environment (recommended)
+python3 -m venv venv
+source venv/bin/activate
+
+# Install Python dependencies
+pip install --upgrade pip
+pip install setuptools  # Fix for webrtcvad compatibility
+pip install -r requirements.txt
+
+# Create configuration directory
+mkdir -p ~/.config/aida
+
+# Copy example configuration
+cp config.example.json ~/.config/aida/client.json
+```
+
+### Troubleshooting Linux/WSL Installation
+
+If you encounter compilation errors when installing `pyaudio` or `webrtcvad`:
+
+```bash
+# Install missing development packages
+sudo apt install python3-dev build-essential portaudio19-dev libasound2-dev
+
+# Alternative: Install pre-compiled wheels if available
+pip install --only-binary=all pyaudio webrtcvad
+
+# If still having issues, try installing packages individually
+pip install pyaudio
+pip install webrtcvad
+```
+
 ### Quick Start (Virtual Environment)
 ```bash
 # Use the convenience activation script
@@ -189,6 +245,16 @@ python3 client.py --test-voice
 - **Configuration Path**: `~/Library/Application Support/Aida/client.json`
 - **Log Path**: `~/Library/Logs/aida-snapcast.log`
 - **No systemd**: Run manually or use launchd for auto-start
+
+### Linux/WSL-Specific Notes
+
+- **Audio Device Detection**: Uses `aplay -l` to list available sound cards
+- **Audio Testing**: Uses `speaker-test` for audio output testing
+- **Audio Playback**: Uses ALSA/PulseAudio system defaults
+- **Configuration Path**: `~/.config/aida/client.json` or `/etc/aida/client.json`
+- **Log Path**: `/var/log/aida-snapcast.log` or journalctl for systemd
+- **Package Dependencies**: Requires `python3-dev`, `build-essential`, and audio development libraries
+- **WSL Audio**: May require PulseAudio configuration for audio output to Windows
 
 ## Configuration
 
