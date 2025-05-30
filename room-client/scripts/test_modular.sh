@@ -1,6 +1,6 @@
 #!/bin/bash
 # Test the modular room client
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."
 echo "Testing platform detection..."
 python -c "from src.utils import get_platform_info; print(get_platform_info())"
 

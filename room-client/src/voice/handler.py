@@ -8,7 +8,7 @@ import tempfile
 import threading
 import time
 from typing import Callable, Optional, Dict, Any
-from wave import open as wave_open
+import wave
 import requests
 
 from ..audio import AudioManager, VoiceActivityDetector
@@ -201,11 +201,14 @@ class VoiceCommandHandler:
 
     def _save_audio_chunks(self, chunks, filename):
         """Save audio chunks to WAV file"""
-        with wave_open(filename, "wb") as wav_writer:
-            wav_writer.setnchannels(self.channels)
-            wav_writer.setsampwidth(2)  # 16-bit
-            wav_writer.setframerate(self.sample_rate)
-            wav_writer.writeframes(b"".join(chunks))
+        wav_file = wave.open(filename, "wb")
+        try:
+            wav_file.setnchannels(self.channels)
+            wav_file.setsampwidth(2)  # 16-bit
+            wav_file.setframerate(self.sample_rate)
+            wav_file.writeframes(b"".join(chunks))
+        finally:
+            wav_file.close()
 
     def _is_wake_word_active(self):
         """Check if wake word is still active"""
@@ -223,10 +226,15 @@ class VoiceCommandHandler:
         """Process a voice command through the AI backend"""
         try:
             response = self.send_text_command(text)
-            if response and self.on_ai_response and callable(self.on_ai_response):
-                self.on_ai_response(response)
+            if response and self.on_ai_response:
+                self._call_ai_response_callback(response)
         except (OSError, IOError) as e:
             logger.error("Error processing voice command: %s", e)
+
+    def _call_ai_response_callback(self, response: str):
+        """Helper method to call the AI response callback"""
+        if self.on_ai_response:
+            self.on_ai_response(response)  # pylint: disable=not-callable
 
     def send_text_command(self, text: str) -> Optional[str]:
         """Send text command to AI backend"""

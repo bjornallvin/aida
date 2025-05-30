@@ -24,7 +24,7 @@ source "$SCRIPT_DIR/venv/bin/activate"
 # Set proper config path for macOS
 export AIDA_CONFIG_PATH="$HOME/Library/Application Support/Aida/client.json"
 
-echo "✅ Aida Snapcast Client virtual environment activated"
+echo "✅ Aida Room Client virtual environment activated"
 echo "📁 Config path: $AIDA_CONFIG_PATH"
 echo ""
 echo "Available commands:"

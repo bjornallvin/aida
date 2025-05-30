@@ -13,6 +13,72 @@ Raspberry Pi client software for Aida's multi-room audio system. This client han
 - **Audio Feedback**: TTS responses played through room speakers
 - **Easy Management**: Simple command-line interface for control
 
+## Directory Structure
+
+The room-client has been organized into a clean, modular structure for better maintainability:
+
+```
+room-client/
+├── src/                          # Modular source code
+│   ├── audio/                    # Audio handling & VAD
+│   ├── client/                   # Snapcast client management  
+│   ├── config/                   # Configuration management
+│   ├── optimization/             # Hardware optimizations
+│   ├── stt/                      # Speech-to-text engines
+│   ├── utils/                    # Platform detection & logging
+│   └── voice/                    # Voice command processing
+├── deployment/                   # Deployment & installation
+│   ├── install-pi.sh            # Raspberry Pi setup
+│   └── deploy-to-pis.sh         # Bulk deployment
+├── scripts/                      # Development scripts
+│   ├── start_modular.sh         # Start modular client
+│   ├── start_legacy.sh          # Start legacy client
+│   ├── test_modular.sh          # Test setup
+│   └── migrate_to_modular.py    # Migration helper
+├── docs/                         # Documentation
+│   ├── MODULAR_STRUCTURE.md     # Architecture details
+│   ├── MODULARIZATION_COMPLETE.md
+│   └── MACOS_COMPATIBILITY.md   # macOS setup guide
+├── legacy/                       # Legacy implementations
+│   ├── client.py                # Original client
+│   ├── voice_commands.py        # Original voice handling
+│   └── setup.py                 # Legacy setup
+├── configs/                      # Configuration examples
+│   ├── client-pi.json           # Pi-specific config
+│   ├── config-examples.json     # Example configurations
+│   └── *.backup                 # Configuration backups
+├── optimization/                 # Hardware optimizations
+│   └── pi_optimization.py       # Raspberry Pi tuning
+├── main.py                       # Modular entry point
+├── client.json                   # Active configuration
+├── requirements.txt              # Dependencies
+└── setup_modular.py             # Modular setup
+```
+
+### Quick Start Guide
+
+**Primary Usage (Modular Architecture):**
+```bash
+python main.py --config client.json
+```
+
+**Legacy Usage (Backward Compatible):**
+```bash
+python legacy/client.py --config client.json
+```
+
+**Development & Testing:**
+```bash
+./scripts/start_modular.sh       # Start with convenience script
+./scripts/test_modular.sh        # Test all components
+```
+
+**Deployment:**
+```bash
+sudo ./deployment/install-pi.sh  # Install on Raspberry Pi
+./deployment/deploy-to-pis.sh    # Deploy to multiple Pis
+```
+
 ## Installation on Raspberry Pi
 
 ### Quick Install with Voice Commands
