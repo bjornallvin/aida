@@ -4,12 +4,12 @@ Final verification of wake word detection refactoring
 """
 
 import sys
-import os
 from pathlib import Path
 
-# Add the room-client src to path
-room_client_src = str(Path(__file__).parent.parent / "room-client" / "src")
-sys.path.insert(0, room_client_src)
+# Add the room-client directory to path for proper module structure
+room_client_path = str(Path(__file__).parent.parent)
+if room_client_path not in sys.path:
+    sys.path.insert(0, room_client_path)
 
 
 def main():
@@ -18,7 +18,7 @@ def main():
 
     try:
         # Import and test WakeWordDetector
-        from voice.wake_word_detector import WakeWordDetector
+        from src.voice.wake_word_detector import WakeWordDetector
 
         print("✅ WakeWordDetector import successful")
 

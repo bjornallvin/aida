@@ -4,8 +4,12 @@ Simple test script for wake word detection
 """
 
 import sys
-import importlib.util
 from pathlib import Path
+
+# Add the room-client directory to path for proper module structure
+room_client_path = str(Path(__file__).parent.parent)
+if room_client_path not in sys.path:
+    sys.path.insert(0, room_client_path)
 
 
 def test_wake_word_simple():
@@ -14,22 +18,11 @@ def test_wake_word_simple():
     print("=" * 40)
 
     # Import wake word detector
-    detector_path = (
-        Path(__file__).parent.parent
-        / "room-client"
-        / "src"
-        / "voice"
-        / "wake_word_detector.py"
-    )
-    spec = importlib.util.spec_from_file_location("wake_word_detector", detector_path)
-
-    if spec is None or spec.loader is None:
-        print("❌ Could not load wake word detector")
+    try:
+        from src.voice.wake_word_detector import WakeWordDetector
+    except ImportError as e:
+        print(f"❌ Could not import wake word detector: {e}")
         return False
-
-    wake_word_module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(wake_word_module)
-    WakeWordDetector = wake_word_module.WakeWordDetector
 
     # Create detector
     detector = WakeWordDetector(

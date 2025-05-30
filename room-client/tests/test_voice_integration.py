@@ -4,19 +4,22 @@ Test script for voice integration functionality
 """
 
 import sys
-import os
+from pathlib import Path
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "room-client"))
+# Add the room-client directory to path for proper module structure
+room_client_path = str(Path(__file__).parent.parent)
+if room_client_path not in sys.path:
+    sys.path.insert(0, room_client_path)
 
-from client import SnapcastClient
+from src.client import SnapcastClient
 
 
 def test_voice_integration():
     """Test voice command integration end-to-end"""
     print("=== Aida Voice Integration Test ===")
 
-    # Use the project root config file
-    config_path = os.path.join(os.path.dirname(__file__), "client.json")
+    # Use the room-client config file
+    config_path = str(Path(__file__).parent.parent / "client.json")
 
     print(f"Using config: {config_path}")
 

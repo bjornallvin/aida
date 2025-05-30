@@ -273,7 +273,7 @@ class VoiceCommandHandler:
 
             # Send to backend
             response = requests.post(
-                f"{self.backend_url}/api/chat",
+                f"{self.backend_url}/chat",
                 json=payload,
                 timeout=30,
                 headers={"Content-Type": "application/json"},

@@ -116,7 +116,7 @@ def test_voice_command_class():
         import os
 
         sys.path.append(os.path.join(os.path.dirname(__file__), "..", "room-client"))
-        from voice_commands import VoiceCommandHandler
+        from src.voice.handler import VoiceCommandHandler
 
         # Create a test config
         test_config = {"room_name": "test_room", "voice_commands_enabled": True}

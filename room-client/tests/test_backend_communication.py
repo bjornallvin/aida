@@ -5,14 +5,17 @@ Tests the /chat endpoint communication between client and backend
 """
 
 import json
+import os
 import requests
 import sys
-import os
+from pathlib import Path
 
-# Add the room-client directory to the path so we can import voice_commands
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "room-client"))
+# Add the room-client directory to the path for proper module structure
+room_client_path = str(Path(__file__).parent.parent)
+if room_client_path not in sys.path:
+    sys.path.insert(0, room_client_path)
 
-from voice_commands import VoiceCommandHandler
+from src.voice.handler import VoiceCommandHandler
 
 
 def test_health_endpoint(backend_url):
