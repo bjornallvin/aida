@@ -188,7 +188,7 @@ export class DeviceController {
   }
 
   /**
-   * Control light device (on/off, brightness)
+   * Control device (lights and outlets) - on/off, brightness for lights
    */
   async controlLight(req: Request, res: Response): Promise<void> {
     try {
@@ -211,7 +211,7 @@ export class DeviceController {
         return;
       }
 
-      logger.info("Light control requested", {
+      logger.info("Device control requested", {
         deviceId,
         isOn,
         brightness,
@@ -229,7 +229,7 @@ export class DeviceController {
         }
       }
 
-      // Get the device to check if it exists and is a light
+      // Get the device to check if it exists and is a light or outlet
       const device = await tradfriController.getDeviceById(deviceId);
       if (!device) {
         res.status(404).json({
@@ -239,10 +239,18 @@ export class DeviceController {
         return;
       }
 
-      if (device.type !== "light") {
+      logger.info("Device found for control", {
+        deviceId,
+        deviceName: device.name,
+        deviceType: device.type,
+        isOn,
+        brightness,
+      });
+
+      if (device.type !== "light" && device.type !== "outlet") {
         res.status(400).json({
           success: false,
-          error: `Device "${device.name}" is not a light (type: ${device.type})`,
+          error: `Device "${device.name}" is not a controllable device (type: ${device.type}). Only lights and outlets can be controlled.`,
         });
         return;
       }
@@ -253,7 +261,7 @@ export class DeviceController {
       if (success) {
         res.json({
           success: true,
-          message: `Light ${isOn ? 'turned on' : 'turned off'} successfully`,
+          message: `${device.type} ${isOn ? 'turned on' : 'turned off'} successfully`,
           device: {
             id: deviceId,
             name: device.name,
@@ -263,27 +271,28 @@ export class DeviceController {
           timestamp: new Date().toISOString(),
         });
         
-        logger.info("Light controlled successfully", {
+        logger.info("Device controlled successfully", {
           deviceId,
           deviceName: device.name,
+          deviceType: device.type,
           isOn,
           brightness,
         });
       } else {
         res.status(500).json({
           success: false,
-          error: "Failed to control light",
+          error: `Failed to control ${device.type}`,
         });
       }
     } catch (error) {
-      logger.error("Failed to control light", {
+      logger.error("Failed to control device", {
         error: (error as Error).message,
         stack: (error as Error).stack,
       });
 
       res.status(500).json({
         success: false,
-        error: "Failed to control light",
+        error: "Failed to control device",
         timestamp: new Date().toISOString(),
       });
     }

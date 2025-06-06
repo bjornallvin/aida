@@ -177,27 +177,37 @@ export class TradfriController {
     }
 
     try {
-      const device = await this.resolveDevice(deviceIdOrName, "light");
+      // First try to resolve as any device (no type filter)
+      const device = await this.resolveDevice(deviceIdOrName);
       if (!device) {
-        throw new Error(`Light device "${deviceIdOrName}" not found. Try checking the exact name or use list_devices to see available lights.`);
+        throw new Error(`Device "${deviceIdOrName}" not found. Try checking the exact name or use list_devices to see available devices.`);
       }
 
-      // Set light state
-      await this.client.lights.setIsOn({ id: device.id, isOn });
+      // Check if device is controllable (light or outlet)
+      if (device.type !== "light" && device.type !== "outlet") {
+        throw new Error(`Device "${deviceIdOrName}" is not controllable (type: ${device.type}). Only lights and outlets can be controlled.`);
+      }
 
-      // Set brightness if provided and light is on
-      if (isOn && brightness !== undefined) {
-        // Ensure brightness is within valid range (1-100)
-        const validBrightness = Math.max(1, Math.min(100, brightness));
-        await this.client.lights.setLightLevel({
-          id: device.id,
-          lightLevel: validBrightness,
-        });
+      // Control light or outlet
+      if (device.type === "light") {
+        await this.client.lights.setIsOn({ id: device.id, isOn });
+
+        // Set brightness if provided and light is on
+        if (isOn && brightness !== undefined) {
+          // Ensure brightness is within valid range (1-100)
+          const validBrightness = Math.max(1, Math.min(100, brightness));
+          await this.client.lights.setLightLevel({
+            id: device.id,
+            lightLevel: validBrightness,
+          });
+        }
+      } else if (device.type === "outlet") {
+        await this.client.outlets.setIsOn({ id: device.id, isOn });
       }
 
       return true;
     } catch (error) {
-      console.error("Failed to control light:", error);
+      console.error("Failed to control device:", error);
       return false;
     }
   }

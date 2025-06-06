@@ -18,7 +18,7 @@ export const DeviceManager: React.FC<DeviceManagerProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [deviceTypeFilter, setDeviceTypeFilter] = useState<string>("");
   const [updating, setUpdating] = useState<string | null>(null);
-  const [togglingLight, setTogglingLight] = useState<string | null>(null);
+  const [togglingDevice, setTogglingDevice] = useState<string | null>(null);
 
   const deviceTypes = ["light", "blinds", "outlet", "airPurifier"];
 
@@ -91,13 +91,13 @@ export const DeviceManager: React.FC<DeviceManagerProps> = ({
     }
   };
 
-  const handleLightToggle = async (device: TradfriDevice) => {
-    if (device.type !== "light" || device.isOn === undefined) {
+  const handleDeviceToggle = async (device: TradfriDevice) => {
+    if ((device.type !== "light" && device.type !== "outlet") || device.isOn === undefined) {
       return;
     }
 
     try {
-      setTogglingLight(device.id);
+      setTogglingDevice(device.id);
       const newIsOn = !device.isOn;
       const response = await apiService.controlLight(device.id, newIsOn);
       
@@ -111,12 +111,12 @@ export const DeviceManager: React.FC<DeviceManagerProps> = ({
           )
         );
       } else {
-        setError(response.error || "Failed to control light");
+        setError(response.error || `Failed to control ${device.type}`);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to control light");
+      setError(err instanceof Error ? err.message : `Failed to control ${device.type}`);
     } finally {
-      setTogglingLight(null);
+      setTogglingDevice(null);
     }
   };
 
@@ -342,13 +342,13 @@ export const DeviceManager: React.FC<DeviceManagerProps> = ({
                         </span>
                       )}
 
-                      {/* Light Toggle Switch */}
-                      {device.type === "light" && device.isOn !== undefined && device.isReachable && (
+                      {/* Device Toggle Switch */}
+                      {(device.type === "light" || device.type === "outlet") && device.isOn !== undefined && device.isReachable && (
                         <div className="flex items-center space-x-2">
-                          <span className="text-sm text-gray-500">Light:</span>
+                          <span className="text-sm text-gray-500 capitalize">{device.type}:</span>
                           <button
-                            onClick={() => handleLightToggle(device)}
-                            disabled={togglingLight === device.id}
+                            onClick={() => handleDeviceToggle(device)}
+                            disabled={togglingDevice === device.id}
                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 ${
                               device.isOn 
                                 ? 'bg-blue-600' 
@@ -361,7 +361,7 @@ export const DeviceManager: React.FC<DeviceManagerProps> = ({
                               }`}
                             />
                           </button>
-                          {togglingLight === device.id && (
+                          {togglingDevice === device.id && (
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
                           )}
                         </div>
