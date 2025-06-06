@@ -205,6 +205,17 @@ class VoiceCommandHandler:
                             detection_result["matched_word"],
                             detection_result["confidence"],
                         )
+
+                        # Extract command portion after wake word and process immediately
+                        command_text = self._extract_command_after_wake_word(
+                            text, detection_result["matched_word"]
+                        )
+                        if command_text.strip():
+                            logger.info(
+                                "Processing command from wake word utterance: %s",
+                                command_text,
+                            )
+                            self._process_voice_command(command_text)
                         return
 
                 # Process as command if wake word was detected recently
@@ -236,6 +247,45 @@ class VoiceCommandHandler:
             return False
 
         return True
+
+    def _extract_command_after_wake_word(
+        self, full_text: str, matched_wake_word: str
+    ) -> str:
+        """Extract the command portion after the wake word from the full transcribed text"""
+        import re
+
+        # Convert to lowercase for matching
+        text_lower = full_text.lower()
+        wake_word_lower = matched_wake_word.lower()
+
+        # Find the position of the wake word in the text
+        wake_word_index = text_lower.find(wake_word_lower)
+
+        if wake_word_index == -1:
+            # If exact match not found, try fuzzy matching to find the position
+            words = re.findall(r"\b\w+\b", text_lower)
+            for i, word in enumerate(words):
+                if (
+                    word == wake_word_lower
+                    or word in self.wake_word_detector.variations
+                ):
+                    # Found the wake word, extract everything after it
+                    remaining_words = words[i + 1 :]
+                    return " ".join(remaining_words)
+
+            # If still not found, return the original text (fallback)
+            return full_text
+
+        # Extract everything after the wake word
+        command_start = wake_word_index + len(wake_word_lower)
+        command_text = full_text[command_start:].strip()
+
+        # Remove only leading punctuation and minimal connectives
+        command_text = re.sub(
+            r"^(,|and then|then)\s*", "", command_text, flags=re.IGNORECASE
+        )
+
+        return command_text.strip()
 
     def _process_voice_command(self, text: str):
         """Process a voice command through the AI backend"""
