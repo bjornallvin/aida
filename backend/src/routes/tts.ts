@@ -47,7 +47,7 @@ export class TTSController {
    */
   public async generateFile(req: Request, res: Response): Promise<void> {
     try {
-      const { text, voiceId } = req.body;
+      const { text, language } = req.body;
 
       if (!text) {
         const response: APIResponse = {
@@ -59,7 +59,7 @@ export class TTSController {
         return;
       }
 
-      const filename = await this.ttsService.generateTTSFile(text, voiceId);
+      const filename = await this.ttsService.generateTTSFile(text, language);
 
       const response: APIResponse = {
         success: true,
@@ -68,6 +68,7 @@ export class TTSController {
           filename,
           audioUrl: `/audio/${filename}`,
           textLength: text.length,
+          language: language || "auto",
         },
       };
 

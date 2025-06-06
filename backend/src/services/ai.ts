@@ -234,8 +234,11 @@ export class AIService {
   /**
    * Generate TTS audio for AI response
    */
-  public async generateResponseAudio(text: string): Promise<string> {
-    const audioStream = await this.elevenlabsClient.generateTTS(text);
+  public async generateResponseAudio(
+    text: string,
+    language?: "english" | "swedish" | "auto"
+  ): Promise<string> {
+    const audioStream = await this.elevenlabsClient.generateTTS(text, language);
     const responseAudioFile = path.join(
       config.audioDir,
       `response_${uuidv4()}.mp3`

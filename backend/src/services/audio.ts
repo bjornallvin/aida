@@ -129,9 +129,13 @@ export class TTSService {
    * Generate and play TTS audio
    */
   public async generateAndPlayTTS(request: TTSRequest): Promise<TTSResponse> {
-    const { text, room } = request;
+    const { text, room, language } = request;
 
-    logger.info("Processing TTS request", { room, textLength: text?.length });
+    logger.info("Processing TTS request", {
+      room,
+      textLength: text?.length,
+      language: language || "auto",
+    });
 
     this.validateTTSRequest(request);
 
@@ -142,8 +146,8 @@ export class TTSService {
     // Ensure audio directory exists
     this.ensureAudioDirectoryExists();
 
-    // Generate TTS audio
-    const audioStream = await this.elevenlabsClient.generateTTS(text);
+    // Generate TTS audio with language parameter
+    const audioStream = await this.elevenlabsClient.generateTTS(text, language);
 
     // Save to file
     await this.saveAudioStream(audioStream, filePath);
@@ -168,7 +172,7 @@ export class TTSService {
    */
   public async generateTTSFile(
     text: string,
-    voiceId?: string
+    language?: "english" | "swedish" | "auto"
   ): Promise<string> {
     this.validateText(text);
 
@@ -179,13 +183,17 @@ export class TTSService {
     // Ensure audio directory exists
     this.ensureAudioDirectoryExists();
 
-    // Generate TTS audio
-    const audioStream = await this.elevenlabsClient.generateTTS(text, voiceId);
+    // Generate TTS audio with language parameter
+    const audioStream = await this.elevenlabsClient.generateTTS(text, language);
 
     // Save to file
     await this.saveAudioStream(audioStream, filePath);
 
-    logger.info("TTS file generated", { filename, textLength: text.length });
+    logger.info("TTS file generated", {
+      filename,
+      textLength: text.length,
+      language,
+    });
 
     return filename;
   }

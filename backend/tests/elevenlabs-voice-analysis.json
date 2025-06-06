@@ -1,0 +1,500 @@
+{
+  "timestamp": "2025-05-30T17:19:56.954Z",
+  "totalVoices": 20,
+  "multilingualVoices": [
+    {
+      "voice_id": "aSLKtNoVBZlxQEMsnGL2",
+      "name": "Sanna Hartfield - Swedish Narration",
+      "samples": null,
+      "category": "professional",
+      "fine_tuning": {
+        "is_allowed_to_fine_tune": true,
+        "state": {
+          "eleven_multilingual_v2": "fine_tuned",
+          "eleven_turbo_v2_5": "fine_tuned",
+          "eleven_flash_v2_5": "fine_tuned",
+          "eleven_v2_5_flash": "fine_tuned"
+        },
+        "verification_failures": [],
+        "verification_attempts_count": 0,
+        "manual_verification_requested": false,
+        "language": "sv",
+        "progress": {},
+        "message": {},
+        "dataset_duration_seconds": null,
+        "verification_attempts": null,
+        "slice_ids": null,
+        "manual_verification": null,
+        "max_verification_attempts": 0,
+        "next_max_verification_attempts_reset_unix_ms": 0
+      },
+      "labels": {
+        "language": "sv",
+        "descriptive": "calm",
+        "age": "middle_aged",
+        "gender": "female",
+        "accent": "stockholm",
+        "use_case": "narrative_story",
+        "locale": "sv-SE"
+      },
+      "description": "Professional Swedish Narrator for audio books, e-learning and documentaries. A calm and soothing, smooth and velvety Stockholm accent.",
+      "preview_url": "https://storage.googleapis.com/eleven-public-prod/custom/voices/aSLKtNoVBZlxQEMsnGL2/g7yysxvG83AAWczMihDs.mp3",
+      "available_for_tiers": [],
+      "settings": null,
+      "sharing": {
+        "status": "copied",
+        "history_item_sample_id": null,
+        "date_unix": 1748623355,
+        "whitelisted_emails": [],
+        "public_owner_id": "3d1fa6a5595e0a31fff8d7c1a2f2794b91ca87ddd200066dfbdfcef662a65a1b",
+        "original_voice_id": "aSLKtNoVBZlxQEMsnGL2",
+        "financial_rewards_enabled": false,
+        "free_users_allowed": true,
+        "live_moderation_enabled": false,
+        "rate": 1,
+        "fiat_rate": null,
+        "notice_period": 730,
+        "disable_at_unix": null,
+        "voice_mixing_allowed": false,
+        "featured": false,
+        "category": "high_quality",
+        "reader_app_enabled": true,
+        "image_url": "",
+        "ban_reason": null,
+        "liked_by_count": 0,
+        "cloned_by_count": 0,
+        "name": "Sanna Hartfield - Swedish Narration",
+        "description": "Professional Swedish Narrator for audio books, e-learning and documentaries. A calm and soothing, smooth and velvety Stockholm accent.",
+        "labels": {
+          "language": "sv",
+          "descriptive": "calm",
+          "age": "middle_aged",
+          "gender": "female",
+          "accent": "stockholm",
+          "use_case": "narrative_story",
+          "locale": "sv-SE"
+        },
+        "review_status": "not_requested",
+        "review_message": null,
+        "enabled_in_library": false,
+        "instagram_username": null,
+        "twitter_username": null,
+        "youtube_username": null,
+        "tiktok_username": null,
+        "moderation_check": null,
+        "reader_restricted_on": null
+      },
+      "high_quality_base_model_ids": [
+        "eleven_v2_5_flash",
+        "eleven_multilingual_v2",
+        "eleven_flash_v2_5"
+      ],
+      "verified_languages": [
+        {
+          "language": "de",
+          "model_id": "eleven_multilingual_v2",
+          "accent": "standard",
+          "locale": "de-DE",
+          "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/vK4UCv1a99TPkyNIhswfly9xF2B3/voices/aSLKtNoVBZlxQEMsnGL2/8a06f3d5-0809-4f67-a999-3d69043b6249.mp3"
+        },
+        {
+          "language": "pt",
+          "model_id": "eleven_multilingual_v2",
+          "accent": "brazilian",
+          "locale": "pt-BR",
+          "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/vK4UCv1a99TPkyNIhswfly9xF2B3/voices/aSLKtNoVBZlxQEMsnGL2/d3c58de4-3e9f-43be-9ea5-6e52a9a62a07.mp3"
+        },
+        {
+          "language": "es",
+          "model_id": "eleven_multilingual_v2",
+          "accent": "latin",
+          "locale": null,
+          "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/vK4UCv1a99TPkyNIhswfly9xF2B3/voices/aSLKtNoVBZlxQEMsnGL2/3fcd9fdd-1239-46c1-b899-692cd1ab6f89.mp3"
+        },
+        {
+          "language": "hi",
+          "model_id": "eleven_multilingual_v2",
+          "accent": "standard",
+          "locale": "hi-IN",
+          "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/vK4UCv1a99TPkyNIhswfly9xF2B3/voices/aSLKtNoVBZlxQEMsnGL2/0ba3c02b-2dec-4be8-931c-a4f15fed0f0e.mp3"
+        },
+        {
+          "language": "sv",
+          "model_id": "eleven_multilingual_v2",
+          "accent": "standard",
+          "locale": "sv-SE",
+          "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/vK4UCv1a99TPkyNIhswfly9xF2B3/voices/aSLKtNoVBZlxQEMsnGL2/329cf8a6-4e7e-4470-9a24-64789adf4b14.mp3"
+        },
+        {
+          "language": "cs",
+          "model_id": "eleven_multilingual_v2",
+          "accent": "prague",
+          "locale": "cs-CZ",
+          "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/vK4UCv1a99TPkyNIhswfly9xF2B3/voices/aSLKtNoVBZlxQEMsnGL2/c21408e2-efb3-488f-8ccd-860640b550b5.mp3"
+        },
+        {
+          "language": "fr",
+          "model_id": "eleven_multilingual_v2",
+          "accent": "standard",
+          "locale": "fr-FR",
+          "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/vK4UCv1a99TPkyNIhswfly9xF2B3/voices/aSLKtNoVBZlxQEMsnGL2/0cdf1388-258f-410e-9da1-7a3f8a88f824.mp3"
+        },
+        {
+          "language": "ar",
+          "model_id": "eleven_multilingual_v2",
+          "accent": "modern standard",
+          "locale": "ar-SA",
+          "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/vK4UCv1a99TPkyNIhswfly9xF2B3/voices/aSLKtNoVBZlxQEMsnGL2/29dd3baf-baf9-4509-a527-405884db08c5.mp3"
+        }
+      ],
+      "safety_control": null,
+      "voice_verification": {
+        "requires_verification": false,
+        "is_verified": false,
+        "verification_failures": [],
+        "verification_attempts_count": 0,
+        "language": null,
+        "verification_attempts": null
+      },
+      "permission_on_resource": "admin",
+      "is_owner": false,
+      "is_legacy": false,
+      "is_mixed": false,
+      "created_at_unix": 1748623355
+    }
+  ],
+  "swedishCompatibleVoices": [
+    {
+      "voice_id": "aSLKtNoVBZlxQEMsnGL2",
+      "name": "Sanna Hartfield - Swedish Narration",
+      "samples": null,
+      "category": "professional",
+      "fine_tuning": {
+        "is_allowed_to_fine_tune": true,
+        "state": {
+          "eleven_multilingual_v2": "fine_tuned",
+          "eleven_turbo_v2_5": "fine_tuned",
+          "eleven_flash_v2_5": "fine_tuned",
+          "eleven_v2_5_flash": "fine_tuned"
+        },
+        "verification_failures": [],
+        "verification_attempts_count": 0,
+        "manual_verification_requested": false,
+        "language": "sv",
+        "progress": {},
+        "message": {},
+        "dataset_duration_seconds": null,
+        "verification_attempts": null,
+        "slice_ids": null,
+        "manual_verification": null,
+        "max_verification_attempts": 0,
+        "next_max_verification_attempts_reset_unix_ms": 0
+      },
+      "labels": {
+        "language": "sv",
+        "descriptive": "calm",
+        "age": "middle_aged",
+        "gender": "female",
+        "accent": "stockholm",
+        "use_case": "narrative_story",
+        "locale": "sv-SE"
+      },
+      "description": "Professional Swedish Narrator for audio books, e-learning and documentaries. A calm and soothing, smooth and velvety Stockholm accent.",
+      "preview_url": "https://storage.googleapis.com/eleven-public-prod/custom/voices/aSLKtNoVBZlxQEMsnGL2/g7yysxvG83AAWczMihDs.mp3",
+      "available_for_tiers": [],
+      "settings": null,
+      "sharing": {
+        "status": "copied",
+        "history_item_sample_id": null,
+        "date_unix": 1748623355,
+        "whitelisted_emails": [],
+        "public_owner_id": "3d1fa6a5595e0a31fff8d7c1a2f2794b91ca87ddd200066dfbdfcef662a65a1b",
+        "original_voice_id": "aSLKtNoVBZlxQEMsnGL2",
+        "financial_rewards_enabled": false,
+        "free_users_allowed": true,
+        "live_moderation_enabled": false,
+        "rate": 1,
+        "fiat_rate": null,
+        "notice_period": 730,
+        "disable_at_unix": null,
+        "voice_mixing_allowed": false,
+        "featured": false,
+        "category": "high_quality",
+        "reader_app_enabled": true,
+        "image_url": "",
+        "ban_reason": null,
+        "liked_by_count": 0,
+        "cloned_by_count": 0,
+        "name": "Sanna Hartfield - Swedish Narration",
+        "description": "Professional Swedish Narrator for audio books, e-learning and documentaries. A calm and soothing, smooth and velvety Stockholm accent.",
+        "labels": {
+          "language": "sv",
+          "descriptive": "calm",
+          "age": "middle_aged",
+          "gender": "female",
+          "accent": "stockholm",
+          "use_case": "narrative_story",
+          "locale": "sv-SE"
+        },
+        "review_status": "not_requested",
+        "review_message": null,
+        "enabled_in_library": false,
+        "instagram_username": null,
+        "twitter_username": null,
+        "youtube_username": null,
+        "tiktok_username": null,
+        "moderation_check": null,
+        "reader_restricted_on": null
+      },
+      "high_quality_base_model_ids": [
+        "eleven_v2_5_flash",
+        "eleven_multilingual_v2",
+        "eleven_flash_v2_5"
+      ],
+      "verified_languages": [
+        {
+          "language": "de",
+          "model_id": "eleven_multilingual_v2",
+          "accent": "standard",
+          "locale": "de-DE",
+          "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/vK4UCv1a99TPkyNIhswfly9xF2B3/voices/aSLKtNoVBZlxQEMsnGL2/8a06f3d5-0809-4f67-a999-3d69043b6249.mp3"
+        },
+        {
+          "language": "pt",
+          "model_id": "eleven_multilingual_v2",
+          "accent": "brazilian",
+          "locale": "pt-BR",
+          "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/vK4UCv1a99TPkyNIhswfly9xF2B3/voices/aSLKtNoVBZlxQEMsnGL2/d3c58de4-3e9f-43be-9ea5-6e52a9a62a07.mp3"
+        },
+        {
+          "language": "es",
+          "model_id": "eleven_multilingual_v2",
+          "accent": "latin",
+          "locale": null,
+          "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/vK4UCv1a99TPkyNIhswfly9xF2B3/voices/aSLKtNoVBZlxQEMsnGL2/3fcd9fdd-1239-46c1-b899-692cd1ab6f89.mp3"
+        },
+        {
+          "language": "hi",
+          "model_id": "eleven_multilingual_v2",
+          "accent": "standard",
+          "locale": "hi-IN",
+          "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/vK4UCv1a99TPkyNIhswfly9xF2B3/voices/aSLKtNoVBZlxQEMsnGL2/0ba3c02b-2dec-4be8-931c-a4f15fed0f0e.mp3"
+        },
+        {
+          "language": "sv",
+          "model_id": "eleven_multilingual_v2",
+          "accent": "standard",
+          "locale": "sv-SE",
+          "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/vK4UCv1a99TPkyNIhswfly9xF2B3/voices/aSLKtNoVBZlxQEMsnGL2/329cf8a6-4e7e-4470-9a24-64789adf4b14.mp3"
+        },
+        {
+          "language": "cs",
+          "model_id": "eleven_multilingual_v2",
+          "accent": "prague",
+          "locale": "cs-CZ",
+          "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/vK4UCv1a99TPkyNIhswfly9xF2B3/voices/aSLKtNoVBZlxQEMsnGL2/c21408e2-efb3-488f-8ccd-860640b550b5.mp3"
+        },
+        {
+          "language": "fr",
+          "model_id": "eleven_multilingual_v2",
+          "accent": "standard",
+          "locale": "fr-FR",
+          "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/vK4UCv1a99TPkyNIhswfly9xF2B3/voices/aSLKtNoVBZlxQEMsnGL2/0cdf1388-258f-410e-9da1-7a3f8a88f824.mp3"
+        },
+        {
+          "language": "ar",
+          "model_id": "eleven_multilingual_v2",
+          "accent": "modern standard",
+          "locale": "ar-SA",
+          "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/vK4UCv1a99TPkyNIhswfly9xF2B3/voices/aSLKtNoVBZlxQEMsnGL2/29dd3baf-baf9-4509-a527-405884db08c5.mp3"
+        }
+      ],
+      "safety_control": null,
+      "voice_verification": {
+        "requires_verification": false,
+        "is_verified": false,
+        "verification_failures": [],
+        "verification_attempts_count": 0,
+        "language": null,
+        "verification_attempts": null
+      },
+      "permission_on_resource": "admin",
+      "is_owner": false,
+      "is_legacy": false,
+      "is_mixed": false,
+      "created_at_unix": 1748623355
+    }
+  ],
+  "professionalVoices": [
+    {
+      "voice_id": "aSLKtNoVBZlxQEMsnGL2",
+      "name": "Sanna Hartfield - Swedish Narration",
+      "samples": null,
+      "category": "professional",
+      "fine_tuning": {
+        "is_allowed_to_fine_tune": true,
+        "state": {
+          "eleven_multilingual_v2": "fine_tuned",
+          "eleven_turbo_v2_5": "fine_tuned",
+          "eleven_flash_v2_5": "fine_tuned",
+          "eleven_v2_5_flash": "fine_tuned"
+        },
+        "verification_failures": [],
+        "verification_attempts_count": 0,
+        "manual_verification_requested": false,
+        "language": "sv",
+        "progress": {},
+        "message": {},
+        "dataset_duration_seconds": null,
+        "verification_attempts": null,
+        "slice_ids": null,
+        "manual_verification": null,
+        "max_verification_attempts": 0,
+        "next_max_verification_attempts_reset_unix_ms": 0
+      },
+      "labels": {
+        "language": "sv",
+        "descriptive": "calm",
+        "age": "middle_aged",
+        "gender": "female",
+        "accent": "stockholm",
+        "use_case": "narrative_story",
+        "locale": "sv-SE"
+      },
+      "description": "Professional Swedish Narrator for audio books, e-learning and documentaries. A calm and soothing, smooth and velvety Stockholm accent.",
+      "preview_url": "https://storage.googleapis.com/eleven-public-prod/custom/voices/aSLKtNoVBZlxQEMsnGL2/g7yysxvG83AAWczMihDs.mp3",
+      "available_for_tiers": [],
+      "settings": null,
+      "sharing": {
+        "status": "copied",
+        "history_item_sample_id": null,
+        "date_unix": 1748623355,
+        "whitelisted_emails": [],
+        "public_owner_id": "3d1fa6a5595e0a31fff8d7c1a2f2794b91ca87ddd200066dfbdfcef662a65a1b",
+        "original_voice_id": "aSLKtNoVBZlxQEMsnGL2",
+        "financial_rewards_enabled": false,
+        "free_users_allowed": true,
+        "live_moderation_enabled": false,
+        "rate": 1,
+        "fiat_rate": null,
+        "notice_period": 730,
+        "disable_at_unix": null,
+        "voice_mixing_allowed": false,
+        "featured": false,
+        "category": "high_quality",
+        "reader_app_enabled": true,
+        "image_url": "",
+        "ban_reason": null,
+        "liked_by_count": 0,
+        "cloned_by_count": 0,
+        "name": "Sanna Hartfield - Swedish Narration",
+        "description": "Professional Swedish Narrator for audio books, e-learning and documentaries. A calm and soothing, smooth and velvety Stockholm accent.",
+        "labels": {
+          "language": "sv",
+          "descriptive": "calm",
+          "age": "middle_aged",
+          "gender": "female",
+          "accent": "stockholm",
+          "use_case": "narrative_story",
+          "locale": "sv-SE"
+        },
+        "review_status": "not_requested",
+        "review_message": null,
+        "enabled_in_library": false,
+        "instagram_username": null,
+        "twitter_username": null,
+        "youtube_username": null,
+        "tiktok_username": null,
+        "moderation_check": null,
+        "reader_restricted_on": null
+      },
+      "high_quality_base_model_ids": [
+        "eleven_v2_5_flash",
+        "eleven_multilingual_v2",
+        "eleven_flash_v2_5"
+      ],
+      "verified_languages": [
+        {
+          "language": "de",
+          "model_id": "eleven_multilingual_v2",
+          "accent": "standard",
+          "locale": "de-DE",
+          "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/vK4UCv1a99TPkyNIhswfly9xF2B3/voices/aSLKtNoVBZlxQEMsnGL2/8a06f3d5-0809-4f67-a999-3d69043b6249.mp3"
+        },
+        {
+          "language": "pt",
+          "model_id": "eleven_multilingual_v2",
+          "accent": "brazilian",
+          "locale": "pt-BR",
+          "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/vK4UCv1a99TPkyNIhswfly9xF2B3/voices/aSLKtNoVBZlxQEMsnGL2/d3c58de4-3e9f-43be-9ea5-6e52a9a62a07.mp3"
+        },
+        {
+          "language": "es",
+          "model_id": "eleven_multilingual_v2",
+          "accent": "latin",
+          "locale": null,
+          "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/vK4UCv1a99TPkyNIhswfly9xF2B3/voices/aSLKtNoVBZlxQEMsnGL2/3fcd9fdd-1239-46c1-b899-692cd1ab6f89.mp3"
+        },
+        {
+          "language": "hi",
+          "model_id": "eleven_multilingual_v2",
+          "accent": "standard",
+          "locale": "hi-IN",
+          "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/vK4UCv1a99TPkyNIhswfly9xF2B3/voices/aSLKtNoVBZlxQEMsnGL2/0ba3c02b-2dec-4be8-931c-a4f15fed0f0e.mp3"
+        },
+        {
+          "language": "sv",
+          "model_id": "eleven_multilingual_v2",
+          "accent": "standard",
+          "locale": "sv-SE",
+          "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/vK4UCv1a99TPkyNIhswfly9xF2B3/voices/aSLKtNoVBZlxQEMsnGL2/329cf8a6-4e7e-4470-9a24-64789adf4b14.mp3"
+        },
+        {
+          "language": "cs",
+          "model_id": "eleven_multilingual_v2",
+          "accent": "prague",
+          "locale": "cs-CZ",
+          "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/vK4UCv1a99TPkyNIhswfly9xF2B3/voices/aSLKtNoVBZlxQEMsnGL2/c21408e2-efb3-488f-8ccd-860640b550b5.mp3"
+        },
+        {
+          "language": "fr",
+          "model_id": "eleven_multilingual_v2",
+          "accent": "standard",
+          "locale": "fr-FR",
+          "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/vK4UCv1a99TPkyNIhswfly9xF2B3/voices/aSLKtNoVBZlxQEMsnGL2/0cdf1388-258f-410e-9da1-7a3f8a88f824.mp3"
+        },
+        {
+          "language": "ar",
+          "model_id": "eleven_multilingual_v2",
+          "accent": "modern standard",
+          "locale": "ar-SA",
+          "preview_url": "https://storage.googleapis.com/eleven-public-prod/database/user/vK4UCv1a99TPkyNIhswfly9xF2B3/voices/aSLKtNoVBZlxQEMsnGL2/29dd3baf-baf9-4509-a527-405884db08c5.mp3"
+        }
+      ],
+      "safety_control": null,
+      "voice_verification": {
+        "requires_verification": false,
+        "is_verified": false,
+        "verification_failures": [],
+        "verification_attempts_count": 0,
+        "language": null,
+        "verification_attempts": null
+      },
+      "permission_on_resource": "admin",
+      "is_owner": false,
+      "is_legacy": false,
+      "is_mixed": false,
+      "created_at_unix": 1748623355
+    }
+  ],
+  "recommendations": {
+    "useMultilingualModel": "eleven_multilingual_v2",
+    "suggestedVoices": [
+      {
+        "name": "Sanna Hartfield - Swedish Narration",
+        "id": "aSLKtNoVBZlxQEMsnGL2",
+        "category": "professional"
+      }
+    ]
+  }
+}

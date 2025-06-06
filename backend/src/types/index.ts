@@ -10,6 +10,7 @@ export interface PlayRequest {
 export interface TTSRequest {
   text: string;
   room: string;
+  language?: "english" | "swedish" | "auto";
 }
 
 export interface ChatRequest {
