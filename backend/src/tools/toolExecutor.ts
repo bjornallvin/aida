@@ -25,28 +25,42 @@ export class SmartHomeToolExecutor {
     parameters: any
   ): Promise<ToolExecutionResult> {
     try {
+      let result: ToolExecutionResult;
+
       switch (toolName) {
         //case "control_lights":
         //  return await this.lightController.controlLights(parameters);
         case "control_temperature":
-          return await this.temperatureController.controlTemperature(
+          result = await this.temperatureController.controlTemperature(
             parameters
           );
+          break;
         case "control_music":
-          return await this.musicController.controlMusic(parameters);
+          result = await this.musicController.controlMusic(parameters);
+          break;
         case "control_security":
-          return await this.securityController.controlSecurity(parameters);
+          result = await this.securityController.controlSecurity(parameters);
+          break;
         case "get_device_status":
-          return await this.deviceStatusController.getDeviceStatus(parameters);
+          result = await this.deviceStatusController.getDeviceStatus(
+            parameters
+          );
+          break;
         case "tradfri_control":
-          return await controlTradfri(parameters);
+          result = await controlTradfri(parameters);
+          break;
         default:
-          return {
+          result = {
             success: false,
             message: `Unknown tool: ${toolName}`,
             error: "UNKNOWN_TOOL",
           };
+          break;
       }
+
+      // Add tool name to the result
+      result.toolName = toolName;
+      return result;
     } catch (error) {
       return {
         success: false,
@@ -54,6 +68,7 @@ export class SmartHomeToolExecutor {
           error instanceof Error ? error.message : String(error)
         }`,
         error: "EXECUTION_ERROR",
+        toolName: toolName,
       };
     }
   }

@@ -97,6 +97,8 @@ export interface VoiceCommandResponse {
   transcription: string;
   response: string;
   audioFile: string;
+  toolCalls?: ToolCall[];
+  toolResults?: ToolExecutionResult[];
   usage?:
     | {
         total_tokens: number;

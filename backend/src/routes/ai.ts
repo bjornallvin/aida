@@ -187,6 +187,14 @@ export class AIController {
         transcription: chatRequest.message, // Use the input text as "transcription"
         response: chatResult.response,
         audioFile: `/audio/${require("path").basename(responseAudioFile)}`,
+        ...(chatResult.toolCalls &&
+          chatResult.toolCalls.length > 0 && {
+            toolCalls: chatResult.toolCalls,
+          }),
+        ...(chatResult.toolResults &&
+          chatResult.toolResults.length > 0 && {
+            toolResults: chatResult.toolResults,
+          }),
         usage: chatResult.usage,
       };
 

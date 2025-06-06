@@ -20,4 +20,5 @@ export interface ToolExecutionResult {
   message: string;
   data?: any;
   error?: string;
+  toolName?: string;
 }

@@ -178,8 +178,10 @@ export class TradfriController {
 
     try {
       // Check for special cases like "all lights" or room-based commands
-      if (deviceIdOrName.toLowerCase().includes("all lights") || 
-          deviceIdOrName.toLowerCase() === "all") {
+      if (
+        deviceIdOrName.toLowerCase().includes("all lights") ||
+        deviceIdOrName.toLowerCase() === "all"
+      ) {
         return await this.controlAllLights(isOn, brightness);
       }
 
@@ -211,7 +213,7 @@ export class TradfriController {
         if (matches.length > 0) {
           // Control all matched lights
           return await this.controlMultipleLights(
-            matches.map(m => m.device).filter(d => d.type === "light"),
+            matches.map((m) => m.device).filter((d) => d.type === "light"),
             isOn,
             brightness
           );
@@ -254,18 +256,50 @@ export class TradfriController {
   }
 
   // Helper method to control multiple lights
-  private async controlMultipleLights(
+  async controlMultipleLights(
     devices: Device[],
     isOn: boolean,
-    brightness?: number
+    brightness?: number,
+    excludeDevices?: string[]
   ): Promise<boolean> {
     if (!this.client) {
       throw new Error("Not connected to DIRIGERA hub");
     }
 
-    const lightDevices = devices.filter(d => d.type === "light");
+    let lightDevices = devices.filter((d) => d.type === "light");
+
+    // Filter out excluded devices if provided
+    if (excludeDevices && excludeDevices.length > 0) {
+      const allDevicesRaw = Array.from(this.devices.values());
+
+      // Find the actual device IDs for excluded device names using fuzzy matching
+      const excludedIds = new Set<string>();
+      for (const excludeName of excludeDevices) {
+        const match = findBestDeviceMatch(excludeName, allDevicesRaw);
+        if (match && match.confidence > 0.6) {
+          excludedIds.add(match.device.id);
+          const deviceName =
+            match.device.attributes.customName ||
+            match.device.attributes.model ||
+            "Unknown Device";
+          logger.info(`Excluding device: ${deviceName} (${match.device.id})`);
+        }
+      }
+
+      // Filter out excluded devices
+      lightDevices = lightDevices.filter(
+        (device) => !excludedIds.has(device.id)
+      );
+
+      logger.info(
+        `Filtered devices: ${lightDevices.length} lights (excluded ${excludedIds.size} devices)`
+      );
+    }
+
     if (lightDevices.length === 0) {
-      throw new Error("No controllable lights found");
+      throw new Error(
+        "No controllable lights found (all devices may be excluded)"
+      );
     }
 
     try {
@@ -302,8 +336,8 @@ export class TradfriController {
 
     try {
       const allDevices = Array.from(this.devices.values());
-      const allLights = allDevices.filter(d => d.type === "light");
-      
+      const allLights = allDevices.filter((d) => d.type === "light");
+
       if (allLights.length === 0) {
         throw new Error("No lights found in the system");
       }
@@ -316,7 +350,7 @@ export class TradfriController {
   }
 
   // Helper method to find devices by room name
-  private async findDevicesByRoom(
+  async findDevicesByRoom(
     roomName: string,
     deviceType?: string
   ): Promise<Device[]> {
@@ -324,10 +358,11 @@ export class TradfriController {
     const roomDevices: Device[] = [];
 
     // Extract room name patterns
-    const normalizedRoom = roomName.toLowerCase()
-      .replace(/\s+/g, '')
-      .replace(/lights?/g, '')
-      .replace(/room/g, '');
+    const normalizedRoom = roomName
+      .toLowerCase()
+      .replace(/\s+/g, "")
+      .replace(/lights?/g, "")
+      .replace(/room/g, "");
 
     for (const device of allDevices) {
       if (deviceType && device.type !== deviceType) continue;
@@ -335,13 +370,15 @@ export class TradfriController {
       const deviceName = (
         device.attributes.customName ||
         device.attributes.model ||
-        ''
+        ""
       ).toLowerCase();
 
       // Check if device name starts with room name
-      if (deviceName.startsWith(normalizedRoom + '_') ||
-          deviceName.startsWith(normalizedRoom) ||
-          deviceName.includes(normalizedRoom)) {
+      if (
+        deviceName.startsWith(normalizedRoom + "_") ||
+        deviceName.startsWith(normalizedRoom) ||
+        deviceName.includes(normalizedRoom)
+      ) {
         roomDevices.push(device);
       }
     }
@@ -702,6 +739,46 @@ export async function controlTradfri(params: any): Promise<any> {
             : "Failed to control light",
         };
 
+      case "control_multiple_lights":
+        const {
+          isOn: multiIsOn,
+          brightness: multiBrightness,
+          excludeDevices,
+        } = options;
+
+        // Find devices in the specified room or area
+        const roomDevices = await tradfriController.findDevicesByRoom(
+          deviceIdentifier,
+          "light"
+        );
+        if (roomDevices.length === 0) {
+          return {
+            success: false,
+            message: `No lights found in "${deviceIdentifier}"`,
+          };
+        }
+
+        const multiSuccess = await tradfriController.controlMultipleLights(
+          roomDevices,
+          multiIsOn,
+          multiBrightness,
+          excludeDevices
+        );
+
+        const excludeCount = excludeDevices ? excludeDevices.length : 0;
+        const controlledCount =
+          roomDevices.filter((d) => d.type === "light").length -
+          (excludeDevices ? excludeDevices.length : 0);
+
+        return {
+          success: multiSuccess,
+          message: multiSuccess
+            ? `Successfully controlled ${controlledCount} lights${
+                excludeCount > 0 ? ` (excluded ${excludeCount})` : ""
+              }`
+            : "Failed to control multiple lights",
+        };
+
       case "control_blind":
         const { targetLevel } = options;
         const blindSuccess = await tradfriController.controlBlind(
@@ -743,6 +820,75 @@ export async function controlTradfri(params: any): Promise<any> {
       case "get_device":
         return await tradfriController.getDeviceById(deviceIdentifier);
 
+      case "control_specific_lights":
+        const {
+          deviceNames,
+          isOn: specificIsOn,
+          brightness: specificBrightness,
+        } = options;
+
+        if (
+          !deviceNames ||
+          !Array.isArray(deviceNames) ||
+          deviceNames.length === 0
+        ) {
+          return {
+            success: false,
+            message:
+              "deviceNames array is required for control_specific_lights action",
+          };
+        }
+
+        // Control each named device
+        const results: boolean[] = [];
+        const successfulDevices: string[] = [];
+        const failedDevices: string[] = [];
+
+        for (const deviceName of deviceNames) {
+          try {
+            const success = await tradfriController.controlLight(
+              deviceName,
+              specificIsOn,
+              specificBrightness
+            );
+            results.push(success);
+            if (success) {
+              successfulDevices.push(deviceName);
+            } else {
+              failedDevices.push(deviceName);
+            }
+          } catch (error) {
+            results.push(false);
+            failedDevices.push(deviceName);
+            console.error(`Failed to control device "${deviceName}":`, error);
+          }
+        }
+
+        const overallSuccess = results.every((r) => r);
+        const partialSuccess = results.some((r) => r);
+
+        let message = "";
+        if (overallSuccess) {
+          message = `Successfully controlled ${
+            successfulDevices.length
+          } devices: ${successfulDevices.join(", ")}`;
+        } else if (partialSuccess) {
+          message = `Partially successful. Controlled: ${successfulDevices.join(
+            ", "
+          )}. Failed: ${failedDevices.join(", ")}`;
+        } else {
+          message = `Failed to control all devices: ${failedDevices.join(
+            ", "
+          )}`;
+        }
+
+        return {
+          success: overallSuccess || partialSuccess,
+          message,
+          controlledDevices: successfulDevices,
+          failedDevices,
+        };
+
       default:
         throw new Error(`Unknown action: ${action}`);
     }
@@ -761,7 +907,7 @@ export const TRADFRI_CONTROL_TOOL: ToolDefinition = {
   function: {
     name: "tradfri_control",
     description:
-      "Control IKEA DIRIGERA smart home devices including lights, blinds, outlets, and scenes. For CONTROL commands (turn on/off, set brightness), use control_light/control_blind/control_outlet actions directly with device names - built-in fuzzy matching will find the right devices. Only use search_devices for discovery/listing when user asks 'what devices are available'.",
+      "Control IKEA DIRIGERA smart home devices including lights, blinds, outlets, and scenes. For CONTROL commands: use control_light for single devices; use control_specific_lights for multiple named devices in one command (e.g., 'desk and workshop light in bedroom'); use control_multiple_lights ONLY for room-wide control with exclusions (e.g., 'all bedroom lights except bed light'). Built-in fuzzy matching will find the right devices. Only use search_devices for discovery/listing when user asks 'what devices are available'.",
     parameters: {
       type: "object",
       properties: {
@@ -771,6 +917,7 @@ export const TRADFRI_CONTROL_TOOL: ToolDefinition = {
             "list_devices",
             "search_devices",
             "control_light",
+            "control_specific_lights",
             "control_multiple_lights",
             "control_blind",
             "control_outlet",
@@ -778,7 +925,8 @@ export const TRADFRI_CONTROL_TOOL: ToolDefinition = {
             "list_scenes",
             "get_device",
           ],
-          description: "The action to perform. Use control_light for turning lights on/off or setting brightness. Use search_devices only for finding/listing devices.",
+          description:
+            "The action to perform. Use control_light for single devices. Use control_specific_lights for multiple named devices (e.g., 'desk and workshop light in bedroom'). Use control_multiple_lights ONLY for room-wide control with exclusions (e.g., 'all bedroom lights except bed light'). Use search_devices only for finding/listing devices.",
         },
         deviceId: {
           type: "string",
@@ -789,6 +937,22 @@ export const TRADFRI_CONTROL_TOOL: ToolDefinition = {
           type: "string",
           description:
             "The name of the device to control. For control actions, use room names like 'bedroom', 'kitchen', 'living room' or device descriptions like 'bathroom light'. The tool has built-in fuzzy matching. (optional if deviceId is provided)",
+        },
+        deviceNames: {
+          type: "array",
+          items: {
+            type: "string",
+          },
+          description:
+            "Array of device names to control when using control_specific_lights action (e.g., ['desk', 'workshop'] for 'desk and workshop light')",
+        },
+        excludeDevices: {
+          type: "array",
+          items: {
+            type: "string",
+          },
+          description:
+            "Array of device names to exclude when controlling multiple lights. Used with control_multiple_lights action for selective control (e.g., 'turn off all bedroom lights except the bed light')",
         },
         query: {
           type: "string",
