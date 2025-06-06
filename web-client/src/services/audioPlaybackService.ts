@@ -13,7 +13,7 @@ export class AudioPlaybackService {
   private async initializeAudioContext() {
     try {
       this.audioContext = new (window.AudioContext ||
-        (window as any).webkitAudioContext)();
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
     } catch (error) {
       console.error("Failed to initialize AudioContext:", error);
     }

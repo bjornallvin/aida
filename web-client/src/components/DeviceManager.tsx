@@ -19,8 +19,41 @@ export const DeviceManager: React.FC<DeviceManagerProps> = ({
   const [deviceTypeFilter, setDeviceTypeFilter] = useState<string>("");
   const [updating, setUpdating] = useState<string | null>(null);
   const [togglingDevice, setTogglingDevice] = useState<string | null>(null);
+  const [togglingRoom, setTogglingRoom] = useState<string | null>(null);
 
   const deviceTypes = ["light", "blinds", "outlet", "airPurifier"];
+
+  // Helper function to extract room name from device name
+  const getRoomName = (deviceName: string): string => {
+    // For devices named like "room_name_number", extract only the first part "room"
+    const parts = deviceName.split('_');
+    if (parts.length >= 1) {
+      // Use only the first part before the first underscore
+      return parts[0];
+    }
+    // Fallback to full name if no underscore
+    return deviceName;
+  };
+
+  // Helper function to group devices by room
+  const groupDevicesByRoom = (devices: TradfriDevice[]) => {
+    const grouped: { [room: string]: TradfriDevice[] } = {};
+    
+    devices.forEach(device => {
+      const roomName = getRoomName(device.name);
+      if (!grouped[roomName]) {
+        grouped[roomName] = [];
+      }
+      grouped[roomName].push(device);
+    });
+
+    // Sort devices within each room by name
+    Object.keys(grouped).forEach(room => {
+      grouped[room].sort((a, b) => a.name.localeCompare(b.name));
+    });
+
+    return grouped;
+  };
 
   const loadDevices = useCallback(async () => {
     try {
@@ -117,6 +150,63 @@ export const DeviceManager: React.FC<DeviceManagerProps> = ({
       setError(err instanceof Error ? err.message : `Failed to control ${device.type}`);
     } finally {
       setTogglingDevice(null);
+    }
+  };
+
+  const handleRoomToggle = async (roomName: string, roomDevices: TradfriDevice[]) => {
+    // Get all controllable devices in the room (lights and outlets)
+    const controllableDevices = roomDevices.filter(
+      device => (device.type === "light" || device.type === "outlet") && 
+                device.isOn !== undefined && 
+                device.isReachable
+    );
+
+    if (controllableDevices.length === 0) {
+      return;
+    }
+
+    // Determine the new state - if any device is off, turn all on; if all are on, turn all off
+    const anyDeviceOff = controllableDevices.some(device => !device.isOn);
+    const newState = anyDeviceOff;
+
+    try {
+      setTogglingRoom(roomName);
+      
+      // Toggle all controllable devices in the room
+      const togglePromises = controllableDevices.map(device => 
+        apiService.controlLight(device.id, newState)
+      );
+
+      const results = await Promise.allSettled(togglePromises);
+      
+      // Check for any failures
+      const failures = results.filter(result => 
+        result.status === 'rejected' || 
+        (result.status === 'fulfilled' && !result.value.success)
+      );
+
+      if (failures.length > 0) {
+        setError(`Failed to control ${failures.length} device(s) in ${roomName}`);
+      }
+
+      // Update successful devices in local state
+      setDevices(prevDevices =>
+        prevDevices.map(device => {
+          const isControllable = controllableDevices.find(d => d.id === device.id);
+          if (isControllable) {
+            const result = results[controllableDevices.indexOf(isControllable)];
+            if (result.status === 'fulfilled' && result.value.success) {
+              return { ...device, isOn: newState };
+            }
+          }
+          return device;
+        })
+      );
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : `Failed to control room ${roomName}`);
+    } finally {
+      setTogglingRoom(null);
     }
   };
 
@@ -245,144 +335,196 @@ export const DeviceManager: React.FC<DeviceManagerProps> = ({
       )}
 
       {/* Device List */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-          <h2 className="text-lg font-medium text-gray-800">
-            Devices ({devices.length})
-          </h2>
-        </div>
-
+      <div className="space-y-6">
         {devices.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-gray-400 text-6xl mb-4">📱</div>
-            <p className="text-gray-500 text-lg">No devices found</p>
-            <p className="text-gray-400 text-sm mt-1">
-              {searchQuery || deviceTypeFilter
-                ? "Try adjusting your search criteria"
-                : "Make sure your DIRIGERA hub is connected"}
-            </p>
+          <div className="bg-white rounded-lg shadow-md">
+            <div className="text-center py-12">
+              <div className="text-gray-400 text-6xl mb-4">📱</div>
+              <p className="text-gray-500 text-lg">No devices found</p>
+              <p className="text-gray-400 text-sm mt-1">
+                {searchQuery || deviceTypeFilter
+                  ? "Try adjusting your search criteria"
+                  : "Make sure your DIRIGERA hub is connected"}
+              </p>
+            </div>
           </div>
         ) : (
-          <div className="divide-y divide-gray-200">
-            {devices.map((device) => {
-              const status = getDeviceStatus(device);
-              const isEditing = editingDevice === device.id;
-              const isUpdating = updating === device.id;
+          (() => {
+            const groupedDevices = groupDevicesByRoom(devices);
+            const roomNames = Object.keys(groupedDevices).sort();
+
+            return roomNames.map((roomName) => {
+              const roomDevices = groupedDevices[roomName];
+              const controllableDevices = roomDevices.filter(
+                device => (device.type === "light" || device.type === "outlet") && 
+                          device.isOn !== undefined && 
+                          device.isReachable
+              );
+              const hasControllableDevices = controllableDevices.length > 0;
+              const anyDeviceOn = controllableDevices.some(device => device.isOn);
+              const allDevicesOn = controllableDevices.length > 0 && controllableDevices.every(device => device.isOn);
 
               return (
-                <div key={device.id} className="p-4 hover:bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="text-2xl">
-                        {getDeviceIcon(device.type)}
-                      </div>
-                      <div className="flex-1">
-                        {isEditing ? (
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="text"
-                              value={newName}
-                              onChange={(e) => setNewName(e.target.value)}
-                              className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              autoFocus
-                              onKeyPress={(e) => {
-                                if (e.key === "Enter") {
-                                  handleEditSave(device.id);
-                                } else if (e.key === "Escape") {
-                                  handleEditCancel();
-                                }
-                              }}
-                            />
-                            <button
-                              onClick={() => handleEditSave(device.id)}
-                              disabled={isUpdating || !newName.trim()}
-                              className="px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 disabled:opacity-50"
-                            >
-                              {isUpdating ? "..." : "Save"}
-                            </button>
-                            <button
-                              onClick={handleEditCancel}
-                              disabled={isUpdating}
-                              className="px-2 py-1 bg-gray-500 text-white text-xs rounded hover:bg-gray-600 disabled:opacity-50"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        ) : (
-                          <div>
-                            <h3 className="text-lg font-medium text-gray-800">
-                              {device.name}
-                            </h3>
-                            <div className="flex items-center space-x-2 mt-1">
-                              <span className="text-sm text-gray-500 capitalize">
-                                {device.type}
-                              </span>
-                              <span className="text-gray-300">•</span>
-                              <span className="text-xs text-gray-400">
-                                ID: {device.id}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center space-x-3">
-                      {/* Device Status */}
-                      <span
-                        className={`px-2 py-1 text-xs font-medium rounded-full ${status.color}`}
-                      >
-                        {status.text}
-                      </span>
-
-                      {/* Device Details */}
-                      {device.brightness !== undefined && (
-                        <span className="text-sm text-gray-500">
-                          {device.brightness}%
-                        </span>
-                      )}
-
-                      {/* Device Toggle Switch */}
-                      {(device.type === "light" || device.type === "outlet") && device.isOn !== undefined && device.isReachable && (
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm text-gray-500 capitalize">{device.type}:</span>
+                <div key={roomName} className="bg-white rounded-lg shadow-md overflow-hidden">
+                  <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-lg font-medium text-gray-800 capitalize">
+                        {roomName} ({roomDevices.length})
+                      </h2>
+                      
+                      {/* Room Toggle */}
+                      {hasControllableDevices && (
+                        <div className="flex items-center space-x-3">
+                          <span className="text-sm text-gray-600">
+                            Room: {anyDeviceOn ? 'On' : 'Off'}
+                          </span>
                           <button
-                            onClick={() => handleDeviceToggle(device)}
-                            disabled={togglingDevice === device.id}
+                            onClick={() => handleRoomToggle(roomName, roomDevices)}
+                            disabled={togglingRoom === roomName}
                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 ${
-                              device.isOn 
+                              allDevicesOn 
                                 ? 'bg-blue-600' 
                                 : 'bg-gray-200'
                             }`}
                           >
                             <span
                               className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                device.isOn ? 'translate-x-6' : 'translate-x-1'
+                                allDevicesOn ? 'translate-x-6' : 'translate-x-1'
                               }`}
                             />
                           </button>
-                          {togglingDevice === device.id && (
+                          {togglingRoom === roomName && (
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
                           )}
                         </div>
                       )}
-
-                      {/* Edit Button */}
-                      {!isEditing && (
-                        <button
-                          onClick={() => handleEditStart(device)}
-                          disabled={isUpdating}
-                          className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors disabled:opacity-50"
-                        >
-                          Edit Name
-                        </button>
-                      )}
                     </div>
+                  </div>
+
+                  <div className="divide-y divide-gray-200">
+                    {roomDevices.map((device) => {
+                      const status = getDeviceStatus(device);
+                      const isEditing = editingDevice === device.id;
+                      const isUpdating = updating === device.id;
+
+                      return (
+                        <div key={device.id} className="p-4 hover:bg-gray-50">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <div className="text-2xl">
+                                {getDeviceIcon(device.type)}
+                              </div>
+                              <div className="flex-1">
+                                {isEditing ? (
+                                  <div className="flex items-center space-x-2">
+                                    <input
+                                      type="text"
+                                      value={newName}
+                                      onChange={(e) => setNewName(e.target.value)}
+                                      className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      autoFocus
+                                      onKeyPress={(e) => {
+                                        if (e.key === "Enter") {
+                                          handleEditSave(device.id);
+                                        } else if (e.key === "Escape") {
+                                          handleEditCancel();
+                                        }
+                                      }}
+                                    />
+                                    <button
+                                      onClick={() => handleEditSave(device.id)}
+                                      disabled={isUpdating || !newName.trim()}
+                                      className="px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 disabled:opacity-50"
+                                    >
+                                      {isUpdating ? "..." : "Save"}
+                                    </button>
+                                    <button
+                                      onClick={handleEditCancel}
+                                      disabled={isUpdating}
+                                      className="px-2 py-1 bg-gray-500 text-white text-xs rounded hover:bg-gray-600 disabled:opacity-50"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div>
+                                    <h3 className="text-lg font-medium text-gray-800">
+                                      {device.name}
+                                    </h3>
+                                    <div className="flex items-center space-x-2 mt-1">
+                                      <span className="text-sm text-gray-500 capitalize">
+                                        {device.type}
+                                      </span>
+                                      <span className="text-gray-300">•</span>
+                                      <span className="text-xs text-gray-400">
+                                        ID: {device.id}
+                                      </span>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center space-x-3">
+                              {/* Device Status */}
+                              <span
+                                className={`px-2 py-1 text-xs font-medium rounded-full ${status.color}`}
+                              >
+                                {status.text}
+                              </span>
+
+                              {/* Device Details */}
+                              {device.brightness !== undefined && (
+                                <span className="text-sm text-gray-500">
+                                  {device.brightness}%
+                                </span>
+                              )}
+
+                              {/* Device Toggle Switch */}
+                              {(device.type === "light" || device.type === "outlet") && device.isOn !== undefined && device.isReachable && (
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-sm text-gray-500 capitalize">{device.type}:</span>
+                                  <button
+                                    onClick={() => handleDeviceToggle(device)}
+                                    disabled={togglingDevice === device.id}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 ${
+                                      device.isOn 
+                                        ? 'bg-blue-600' 
+                                        : 'bg-gray-200'
+                                    }`}
+                                  >
+                                    <span
+                                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                        device.isOn ? 'translate-x-6' : 'translate-x-1'
+                                      }`}
+                                    />
+                                  </button>
+                                  {togglingDevice === device.id && (
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Edit Button */}
+                              {!isEditing && (
+                                <button
+                                  onClick={() => handleEditStart(device)}
+                                  disabled={isUpdating}
+                                  className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors disabled:opacity-50"
+                                >
+                                  Edit Name
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
-            })}
-          </div>
+            });
+          })()
         )}
       </div>
 

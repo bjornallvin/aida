@@ -35,6 +35,20 @@ export function useAudioRecorder({
   const startTimeRef = useRef<number>(0);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Define stopRecording first
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && state.isRecording) {
+      mediaRecorderRef.current.stop();
+
+      if (durationIntervalRef.current) {
+        clearInterval(durationIntervalRef.current);
+        durationIntervalRef.current = null;
+      }
+
+      startTimeRef.current = 0;
+    }
+  }, [state.isRecording]);
+
   const updateDuration = useCallback(() => {
     if (startTimeRef.current > 0) {
       const now = Date.now();
@@ -46,7 +60,7 @@ export function useAudioRecorder({
         stopRecording();
       }
     }
-  }, [maxDuration]);
+  }, [maxDuration, stopRecording]);
 
   const startRecording = useCallback(async () => {
     try {
@@ -132,19 +146,6 @@ export function useAudioRecorder({
       console.error("Error starting recording:", err);
     }
   }, [mimeType, onRecordingComplete, onError, updateDuration]);
-
-  const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && state.isRecording) {
-      mediaRecorderRef.current.stop();
-
-      if (durationIntervalRef.current) {
-        clearInterval(durationIntervalRef.current);
-        durationIntervalRef.current = null;
-      }
-
-      startTimeRef.current = 0;
-    }
-  }, [state.isRecording]);
 
   const pauseRecording = useCallback(() => {
     if (mediaRecorderRef.current && state.isRecording && !state.isPaused) {
