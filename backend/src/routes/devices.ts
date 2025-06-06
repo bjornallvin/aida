@@ -23,14 +23,14 @@ export class DeviceController {
       }
 
       const devices = await tradfriController.getDevices();
-      
+
       res.json({
         success: true,
         devices: devices,
         count: devices.length,
         timestamp: new Date().toISOString(),
       });
-      
+
       logger.info("Device list returned successfully", {
         deviceCount: devices.length,
       });
@@ -91,8 +91,11 @@ export class DeviceController {
       }
 
       // Update device name using the DIRIGERA client
-      const success = await tradfriController.updateDeviceName(deviceId, newName);
-      
+      const success = await tradfriController.updateDeviceName(
+        deviceId,
+        newName
+      );
+
       if (success) {
         res.json({
           success: true,
@@ -104,7 +107,7 @@ export class DeviceController {
           },
           timestamp: new Date().toISOString(),
         });
-        
+
         logger.info("Device name updated successfully", {
           deviceId,
           oldName: device.name,
@@ -158,7 +161,7 @@ export class DeviceController {
         query as string,
         deviceType as string
       );
-      
+
       res.json({
         success: true,
         devices: devices,
@@ -167,7 +170,7 @@ export class DeviceController {
         deviceType: deviceType || "all",
         timestamp: new Date().toISOString(),
       });
-      
+
       logger.info("Device search completed", {
         query,
         deviceType,
@@ -256,12 +259,18 @@ export class DeviceController {
       }
 
       // Control the light using the DIRIGERA client
-      const success = await tradfriController.controlLight(deviceId, isOn, brightness);
-      
+      const success = await tradfriController.controlLight(
+        deviceId,
+        isOn,
+        brightness
+      );
+
       if (success) {
         res.json({
           success: true,
-          message: `${device.type} ${isOn ? 'turned on' : 'turned off'} successfully`,
+          message: `${device.type} ${
+            isOn ? "turned on" : "turned off"
+          } successfully`,
           device: {
             id: deviceId,
             name: device.name,
@@ -270,7 +279,7 @@ export class DeviceController {
           },
           timestamp: new Date().toISOString(),
         });
-        
+
         logger.info("Device controlled successfully", {
           deviceId,
           deviceName: device.name,

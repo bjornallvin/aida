@@ -9,11 +9,11 @@ import {
 } from "dirigera";
 import { ToolDefinition } from "./types";
 import { logger } from "../utils";
-import { 
-  findBestDeviceMatch, 
-  findDeviceMatches, 
+import {
+  findBestDeviceMatch,
+  findDeviceMatches,
   DeviceMatchResult,
-  FuzzyMatchOptions 
+  FuzzyMatchOptions,
 } from "./deviceMatching";
 
 interface TradfriConfig {
@@ -177,15 +177,56 @@ export class TradfriController {
     }
 
     try {
-      // First try to resolve as any device (no type filter)
+      // Check for special cases like "all lights" or room-based commands
+      if (deviceIdOrName.toLowerCase().includes("all lights") || 
+          deviceIdOrName.toLowerCase() === "all") {
+        return await this.controlAllLights(isOn, brightness);
+      }
+
+      // Check if this is a room-based command (try to find multiple devices)
+      const roomDevices = await this.findDevicesByRoom(deviceIdOrName, "light");
+      if (roomDevices.length > 1) {
+        return await this.controlMultipleLights(roomDevices, isOn, brightness);
+      }
+
+      // Single device control (existing logic)
       const device = await this.resolveDevice(deviceIdOrName);
       if (!device) {
-        throw new Error(`Device "${deviceIdOrName}" not found. Try checking the exact name or use list_devices to see available devices.`);
+        // If no exact match, try to find devices by room name
+        const allDevices = Array.from(this.devices.values());
+        const { findDeviceMatches } = await import("./deviceMatching");
+        const matches = findDeviceMatches(
+          deviceIdOrName,
+          allDevices,
+          "light",
+          {
+            minSimilarity: 0.4,
+            enablePhonetic: true,
+            enablePartialMatch: true,
+            strictMode: false,
+          },
+          5
+        );
+
+        if (matches.length > 0) {
+          // Control all matched lights
+          return await this.controlMultipleLights(
+            matches.map(m => m.device).filter(d => d.type === "light"),
+            isOn,
+            brightness
+          );
+        }
+
+        throw new Error(
+          `Device "${deviceIdOrName}" not found. Try checking the exact name or use list_devices to see available devices.`
+        );
       }
 
       // Check if device is controllable (light or outlet)
       if (device.type !== "light" && device.type !== "outlet") {
-        throw new Error(`Device "${deviceIdOrName}" is not controllable (type: ${device.type}). Only lights and outlets can be controlled.`);
+        throw new Error(
+          `Device "${deviceIdOrName}" is not controllable (type: ${device.type}). Only lights and outlets can be controlled.`
+        );
       }
 
       // Control light or outlet
@@ -212,7 +253,106 @@ export class TradfriController {
     }
   }
 
-  async controlBlind(deviceIdOrName: string, targetLevel: number): Promise<boolean> {
+  // Helper method to control multiple lights
+  private async controlMultipleLights(
+    devices: Device[],
+    isOn: boolean,
+    brightness?: number
+  ): Promise<boolean> {
+    if (!this.client) {
+      throw new Error("Not connected to DIRIGERA hub");
+    }
+
+    const lightDevices = devices.filter(d => d.type === "light");
+    if (lightDevices.length === 0) {
+      throw new Error("No controllable lights found");
+    }
+
+    try {
+      const promises = lightDevices.map(async (device) => {
+        await this.client!.lights.setIsOn({ id: device.id, isOn });
+
+        // Set brightness if provided and light is on
+        if (isOn && brightness !== undefined) {
+          const validBrightness = Math.max(1, Math.min(100, brightness));
+          await this.client!.lights.setLightLevel({
+            id: device.id,
+            lightLevel: validBrightness,
+          });
+        }
+      });
+
+      await Promise.all(promises);
+      console.log(`Successfully controlled ${lightDevices.length} lights`);
+      return true;
+    } catch (error) {
+      console.error("Failed to control multiple lights:", error);
+      return false;
+    }
+  }
+
+  // Helper method to control all lights in the house
+  private async controlAllLights(
+    isOn: boolean,
+    brightness?: number
+  ): Promise<boolean> {
+    if (!this.client) {
+      throw new Error("Not connected to DIRIGERA hub");
+    }
+
+    try {
+      const allDevices = Array.from(this.devices.values());
+      const allLights = allDevices.filter(d => d.type === "light");
+      
+      if (allLights.length === 0) {
+        throw new Error("No lights found in the system");
+      }
+
+      return await this.controlMultipleLights(allLights, isOn, brightness);
+    } catch (error) {
+      console.error("Failed to control all lights:", error);
+      return false;
+    }
+  }
+
+  // Helper method to find devices by room name
+  private async findDevicesByRoom(
+    roomName: string,
+    deviceType?: string
+  ): Promise<Device[]> {
+    const allDevices = Array.from(this.devices.values());
+    const roomDevices: Device[] = [];
+
+    // Extract room name patterns
+    const normalizedRoom = roomName.toLowerCase()
+      .replace(/\s+/g, '')
+      .replace(/lights?/g, '')
+      .replace(/room/g, '');
+
+    for (const device of allDevices) {
+      if (deviceType && device.type !== deviceType) continue;
+
+      const deviceName = (
+        device.attributes.customName ||
+        device.attributes.model ||
+        ''
+      ).toLowerCase();
+
+      // Check if device name starts with room name
+      if (deviceName.startsWith(normalizedRoom + '_') ||
+          deviceName.startsWith(normalizedRoom) ||
+          deviceName.includes(normalizedRoom)) {
+        roomDevices.push(device);
+      }
+    }
+
+    return roomDevices;
+  }
+
+  async controlBlind(
+    deviceIdOrName: string,
+    targetLevel: number
+  ): Promise<boolean> {
     if (!this.client) {
       throw new Error("Not connected to DIRIGERA hub");
     }
@@ -220,7 +360,9 @@ export class TradfriController {
     try {
       const device = await this.resolveDevice(deviceIdOrName, "blinds");
       if (!device) {
-        throw new Error(`Blind device "${deviceIdOrName}" not found. Try checking the exact name or use list_devices to see available blinds.`);
+        throw new Error(
+          `Blind device "${deviceIdOrName}" not found. Try checking the exact name or use list_devices to see available blinds.`
+        );
       }
 
       // Ensure target level is within valid range (0-100)
@@ -245,7 +387,9 @@ export class TradfriController {
     try {
       const device = await this.resolveDevice(deviceIdOrName, "outlet");
       if (!device) {
-        throw new Error(`Outlet device "${deviceIdOrName}" not found. Try checking the exact name or use list_devices to see available outlets.`);
+        throw new Error(
+          `Outlet device "${deviceIdOrName}" not found. Try checking the exact name or use list_devices to see available outlets.`
+        );
       }
 
       await this.client.outlets.setIsOn({ id: device.id, isOn });
@@ -317,108 +461,144 @@ export class TradfriController {
     };
   }
 
-  async resolveDeviceName(deviceId: string, inputName: string): Promise<DeviceMatchResult | null> {
+  async resolveDeviceName(
+    deviceId: string,
+    inputName: string
+  ): Promise<DeviceMatchResult | null> {
     const device = this.devices.get(deviceId);
     if (!device) return null;
 
-    const deviceName = device.attributes.customName || device.attributes.model || `${device.type}_${device.id}`;
-    
+    const deviceName =
+      device.attributes.customName ||
+      device.attributes.model ||
+      `${device.type}_${device.id}`;
+
     // Use the imported fuzzy matching function
     const matchResult = findBestDeviceMatch(inputName, [device]);
-    
+
     return matchResult;
   }
 
   // Import the fuzzy matching utilities
-  private async findDeviceByName(inputName: string, deviceType?: string): Promise<Device | null> {
-    const { findBestDeviceMatch } = await import('./deviceMatching');
-    
+  private async findDeviceByName(
+    inputName: string,
+    deviceType?: string
+  ): Promise<Device | null> {
+    const { findBestDeviceMatch } = await import("./deviceMatching");
+
     // Get all devices as an array
     const allDevices = Array.from(this.devices.values());
-    
+
     // Find the best match
     const match = findBestDeviceMatch(inputName, allDevices, deviceType, {
       minSimilarity: 0.6,
       enablePhonetic: true,
       enablePartialMatch: true,
-      strictMode: false
+      strictMode: false,
     });
-    
+
     if (match) {
       logger.info("Device name resolved via fuzzy matching", {
         inputName,
         matchedDevice: match.originalName,
         method: match.matchMethod,
-        confidence: match.confidence
+        confidence: match.confidence,
       });
       return match.device;
     }
-    
+
     return null;
   }
 
   // Enhanced device resolution method that tries ID first, then name matching
-  private async resolveDevice(deviceIdOrName: string, deviceType?: string): Promise<Device | null> {
+  private async resolveDevice(
+    deviceIdOrName: string,
+    deviceType?: string
+  ): Promise<Device | null> {
     // First try exact ID match
     const deviceById = this.devices.get(deviceIdOrName);
     if (deviceById && (!deviceType || deviceById.type === deviceType)) {
       return deviceById;
     }
-    
+
     // Then try fuzzy name matching
     return await this.findDeviceByName(deviceIdOrName, deviceType);
   }
 
   // Helper method to find similar device names for suggestions
-  async findSimilarDevices(inputName: string, deviceType?: string, maxResults: number = 3): Promise<Array<{name: string, id: string, type: string, confidence: number}>> {
-    const { findDeviceMatches } = await import('./deviceMatching');
-    
+  async findSimilarDevices(
+    inputName: string,
+    deviceType?: string,
+    maxResults: number = 3
+  ): Promise<
+    Array<{ name: string; id: string; type: string; confidence: number }>
+  > {
+    const { findDeviceMatches } = await import("./deviceMatching");
+
     const allDevices = Array.from(this.devices.values());
-    const matches = findDeviceMatches(inputName, allDevices, deviceType, {
-      minSimilarity: 0.3, // Lower threshold for suggestions
-      enablePhonetic: true,
-      enablePartialMatch: true,
-      strictMode: false
-    }, maxResults);
-    
-    return matches.map(match => ({
+    const matches = findDeviceMatches(
+      inputName,
+      allDevices,
+      deviceType,
+      {
+        minSimilarity: 0.3, // Lower threshold for suggestions
+        enablePhonetic: true,
+        enablePartialMatch: true,
+        strictMode: false,
+      },
+      maxResults
+    );
+
+    return matches.map((match) => ({
       name: match.originalName,
       id: match.device.id,
       type: match.device.type,
-      confidence: Math.round(match.confidence * 100) / 100
+      confidence: Math.round(match.confidence * 100) / 100,
     }));
   }
 
   // Enhanced device listing with search/filter capabilities
-  async searchDevices(query?: string, deviceType?: string): Promise<TradfriDevice[]> {
+  async searchDevices(
+    query?: string,
+    deviceType?: string
+  ): Promise<TradfriDevice[]> {
     let devices = await this.getDevices();
-    
+
     // Filter by type if specified
     if (deviceType) {
-      devices = devices.filter(d => d.type === deviceType);
+      devices = devices.filter((d) => d.type === deviceType);
     }
-    
+
     // If no query, return all (filtered) devices
     if (!query) {
       return devices;
     }
-    
+
     // Use fuzzy matching to find relevant devices
-    const { findDeviceMatches } = await import('./deviceMatching');
+    const { findDeviceMatches } = await import("./deviceMatching");
     const allDevices = Array.from(this.devices.values());
-    const matches = findDeviceMatches(query, allDevices, deviceType, {
-      minSimilarity: 0.2, // Very low threshold for search
-      enablePhonetic: true,
-      enablePartialMatch: true,
-      strictMode: false
-    }, 10);
-    
+    const matches = findDeviceMatches(
+      query,
+      allDevices,
+      deviceType,
+      {
+        minSimilarity: 0.2, // Very low threshold for search
+        enablePhonetic: true,
+        enablePartialMatch: true,
+        strictMode: false,
+      },
+      10
+    );
+
     // Convert matches back to TradfriDevice format
-    const matchedDevices = matches.map(match => {
+    const matchedDevices = matches.map((match) => {
       const device = match.device;
       return {
         id: device.id,
-        name: device.attributes.customName || device.attributes.model || "Unknown Device",
+        name:
+          device.attributes.customName ||
+          device.attributes.model ||
+          "Unknown Device",
         type: device.type,
         isReachable: device.isReachable,
         brightness: this.getDeviceBrightness(device),
@@ -427,7 +607,7 @@ export class TradfriController {
         currentLevel: this.getDeviceCurrentLevel(device),
       };
     });
-    
+
     return matchedDevices;
   }
 
@@ -443,11 +623,14 @@ export class TradfriController {
       }
 
       // Use the generic devices.setCustomName method
-      await this.client.devices.setCustomName({ id: deviceId, customName: newName });
+      await this.client.devices.setCustomName({
+        id: deviceId,
+        customName: newName,
+      });
 
       // Reload devices to get updated names
       await this.loadDevices();
-      
+
       logger.info("Device name updated successfully", {
         deviceId,
         newName,
@@ -498,7 +681,11 @@ export async function controlTradfri(params: any): Promise<any> {
 
       case "search_devices":
         const { query, deviceType } = options;
-        console.log(`Searching devices with query: "${query}", type: ${deviceType || 'all'}`);
+        console.log(
+          `Searching devices with query: "${query}", type: ${
+            deviceType || "all"
+          }`
+        );
         return await tradfriController.searchDevices(query, deviceType);
 
       case "control_light":
@@ -574,7 +761,7 @@ export const TRADFRI_CONTROL_TOOL: ToolDefinition = {
   function: {
     name: "tradfri_control",
     description:
-      "Control IKEA DIRIGERA smart home devices including lights, blinds, outlets, and scenes. Supports both exact device IDs and fuzzy device name matching for better voice control experience.",
+      "Control IKEA DIRIGERA smart home devices including lights, blinds, outlets, and scenes. For CONTROL commands (turn on/off, set brightness), use control_light/control_blind/control_outlet actions directly with device names - built-in fuzzy matching will find the right devices. Only use search_devices for discovery/listing when user asks 'what devices are available'.",
     parameters: {
       type: "object",
       properties: {
@@ -584,13 +771,14 @@ export const TRADFRI_CONTROL_TOOL: ToolDefinition = {
             "list_devices",
             "search_devices",
             "control_light",
+            "control_multiple_lights",
             "control_blind",
             "control_outlet",
             "set_scene",
             "list_scenes",
             "get_device",
           ],
-          description: "The action to perform",
+          description: "The action to perform. Use control_light for turning lights on/off or setting brightness. Use search_devices only for finding/listing devices.",
         },
         deviceId: {
           type: "string",
@@ -600,7 +788,7 @@ export const TRADFRI_CONTROL_TOOL: ToolDefinition = {
         deviceName: {
           type: "string",
           description:
-            "The name of the device to control. Supports fuzzy matching for voice commands like 'living room light', 'bedroom lamp', etc. (optional if deviceId is provided)",
+            "The name of the device to control. For control actions, use room names like 'bedroom', 'kitchen', 'living room' or device descriptions like 'bathroom light'. The tool has built-in fuzzy matching. (optional if deviceId is provided)",
         },
         query: {
           type: "string",
