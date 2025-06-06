@@ -29,6 +29,50 @@ export interface HealthResponse {
   timestamp: string;
 }
 
+export interface DeviceListResponse {
+  success: boolean;
+  devices?: TradfriDevice[];
+  count?: number;
+  timestamp?: string;
+  error?: string;
+}
+
+export interface DeviceUpdateResponse {
+  success: boolean;
+  message?: string;
+  device?: {
+    id: string;
+    oldName: string;
+    newName: string;
+  };
+  timestamp?: string;
+  error?: string;
+}
+
+export interface LightControlResponse {
+  success: boolean;
+  message?: string;
+  device?: {
+    id: string;
+    name: string;
+    isOn: boolean;
+    brightness?: number;
+  };
+  timestamp?: string;
+  error?: string;
+}
+
+export interface TradfriDevice {
+  id: string;
+  name: string;
+  type: string;
+  isReachable: boolean;
+  brightness?: number;
+  isOn?: boolean;
+  targetLevel?: number;
+  currentLevel?: number;
+}
+
 class ApiService {
   private baseUrl: string;
 
@@ -141,6 +185,105 @@ class ApiService {
       return await response.json();
     } catch (error) {
       console.error("Chat message failed:", error);
+      throw error;
+    }
+  }
+
+  async getDevices(): Promise<DeviceListResponse> {
+    try {
+      const response = await fetch(`${this.baseUrl}/devices`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Get devices failed:", error);
+      throw error;
+    }
+  }
+
+  async searchDevices(
+    query?: string,
+    deviceType?: string
+  ): Promise<DeviceListResponse> {
+    try {
+      const params = new URLSearchParams();
+      if (query) params.append("query", query);
+      if (deviceType) params.append("deviceType", deviceType);
+
+      const response = await fetch(
+        `${this.baseUrl}/devices/search?${params.toString()}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Search devices failed:", error);
+      throw error;
+    }
+  }
+
+  async updateDeviceName(
+    deviceId: string,
+    newName: string
+  ): Promise<DeviceUpdateResponse> {
+    try {
+      const response = await fetch(
+        `${this.baseUrl}/devices/${deviceId}/name`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ newName }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Update device name failed:", error);
+      throw error;
+    }
+  }
+
+  async controlLight(
+    deviceId: string,
+    isOn: boolean,
+    brightness?: number
+  ): Promise<LightControlResponse> {
+    try {
+      const body: { isOn: boolean; brightness?: number } = { isOn };
+      if (brightness !== undefined) {
+        body.brightness = brightness;
+      }
+
+      const response = await fetch(
+        `${this.baseUrl}/devices/${deviceId}/light`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Control light failed:", error);
       throw error;
     }
   }
