@@ -233,16 +233,13 @@ class ApiService {
     newName: string
   ): Promise<DeviceUpdateResponse> {
     try {
-      const response = await fetch(
-        `${this.baseUrl}/devices/${deviceId}/name`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ newName }),
-        }
-      );
+      const response = await fetch(`${this.baseUrl}/devices/${deviceId}/name`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ newName }),
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

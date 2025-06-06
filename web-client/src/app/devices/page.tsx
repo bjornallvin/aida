@@ -29,7 +29,9 @@ export default function DevicesPage() {
                 ← Back to Voice Assistant
               </Link>
               <span className="text-gray-300">|</span>
-              <span className="text-gray-700 font-medium">Device Management</span>
+              <span className="text-gray-700 font-medium">
+                Device Management
+              </span>
             </div>
           </div>
         </nav>
@@ -40,12 +42,11 @@ export default function DevicesPage() {
         {/* Footer */}
         <footer className="mt-12 text-center text-gray-500 text-sm">
           <p>
-            Aida Device Management - Control and configure your smart home devices
+            Aida Device Management - Control and configure your smart home
+            devices
           </p>
           <div className="mt-2">
-            <span className="text-gray-400">
-              IKEA DIRIGERA Integration
-            </span>
+            <span className="text-gray-400">IKEA DIRIGERA Integration</span>
           </div>
         </footer>
       </div>

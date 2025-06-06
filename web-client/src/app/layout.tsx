@@ -14,7 +14,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Aida Smart Home Assistant",
-  description: "Voice-enabled AI assistant for your smart apartment with device management",
+  description:
+    "Voice-enabled AI assistant for your smart apartment with device management",
 };
 
 export default function RootLayout({
