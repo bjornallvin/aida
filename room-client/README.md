@@ -31,40 +31,31 @@ room-client/
 │   ├── install-pi.sh            # Raspberry Pi setup
 │   └── deploy-to-pis.sh         # Bulk deployment
 ├── scripts/                      # Development scripts
+│   ├── activate.sh              # Virtual environment activation
 │   ├── start_modular.sh         # Start modular client
-│   ├── start_legacy.sh          # Start legacy client
-│   ├── test_modular.sh          # Test setup
-│   └── migrate_to_modular.py    # Migration helper
+│   └── test_modular.sh          # Test setup
 ├── docs/                         # Documentation
 │   ├── MODULAR_STRUCTURE.md     # Architecture details
 │   ├── MODULARIZATION_COMPLETE.md
 │   └── MACOS_COMPATIBILITY.md   # macOS setup guide
-├── legacy/                       # Legacy implementations
-│   ├── client.py                # Original client
-│   ├── voice_commands.py        # Original voice handling
-│   └── setup.py                 # Legacy setup
 ├── configs/                      # Configuration examples
 │   ├── client-pi.json           # Pi-specific config
 │   ├── config-examples.json     # Example configurations
 │   └── *.backup                 # Configuration backups
 ├── optimization/                 # Hardware optimizations
 │   └── pi_optimization.py       # Raspberry Pi tuning
-├── main.py                       # Modular entry point
+├── tests/                        # Test files
+├── venv/                         # Python virtual environment
+├── main.py                       # Main entry point
 ├── client.json                   # Active configuration
-├── requirements.txt              # Dependencies
-└── setup_modular.py             # Modular setup
+└── requirements.txt              # Dependencies
 ```
 
 ### Quick Start Guide
 
-**Primary Usage (Modular Architecture):**
+**Primary Usage (Current Architecture):**
 ```bash
 python main.py --config client.json
-```
-
-**Legacy Usage (Backward Compatible):**
-```bash
-python legacy/client.py --config client.json
 ```
 
 **Development & Testing:**
@@ -77,6 +68,27 @@ python legacy/client.py --config client.json
 ```bash
 sudo ./deployment/install-pi.sh  # Install on Raspberry Pi
 ./deployment/deploy-to-pis.sh    # Deploy to multiple Pis
+```
+
+## Quick Development Setup
+
+For development on macOS or Linux:
+
+```bash
+# Clone and setup
+cd /path/to/aida/room-client
+
+# Create virtual environment and install dependencies
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Copy and edit configuration
+cp configs/config-examples.json client.json
+# Edit client.json with your settings
+
+# Test the setup
+python main.py --test-audio
 ```
 
 ## Installation on Raspberry Pi
@@ -108,8 +120,8 @@ sudo apt install portaudio19-dev python3-dev
 sudo pip3 install pyaudio webrtcvad requests
 
 # Copy client files to /opt/aida/room-client/
-# Run setup
-sudo python3 setup.py
+# Run pip install for dependencies
+sudo pip3 install -r requirements.txt
 ```
 
 ## Installation on macOS
@@ -149,11 +161,67 @@ mkdir -p ~/Library/Application\ Support/Aida
 cp config.example.json ~/Library/Application\ Support/Aida/client.json
 ```
 
+## Installation on Linux/WSL Ubuntu
+
+The Aida room client supports Linux development environments, including WSL (Windows Subsystem for Linux) with Ubuntu.
+
+### Prerequisites
+```bash
+# Update system packages
+sudo apt update && sudo apt upgrade -y
+
+# Install Python development headers and build tools
+sudo apt install python3-dev python3-pip build-essential
+
+# Install audio development libraries (required for pyaudio and webrtcvad)
+sudo apt install portaudio19-dev libasound2-dev
+
+# Optional: Install additional audio libraries if needed
+sudo apt install libjack-jackd2-dev libpulse-dev
+```
+
+### Installation
+```bash
+# Navigate to the room-client directory
+cd /path/to/aida/room-client
+
+# Create and activate Python virtual environment (recommended)
+python3 -m venv venv
+source venv/bin/activate
+
+# Install Python dependencies
+pip install --upgrade pip
+pip install setuptools  # Fix for webrtcvad compatibility
+pip install -r requirements.txt
+
+# Create configuration directory
+mkdir -p ~/.config/aida
+
+# Copy example configuration
+cp config.example.json ~/.config/aida/client.json
+```
+
+### Troubleshooting Linux/WSL Installation
+
+If you encounter compilation errors when installing `pyaudio` or `webrtcvad`:
+
+```bash
+# Install missing development packages
+sudo apt install python3-dev build-essential portaudio19-dev libasound2-dev
+
+# Alternative: Install pre-compiled wheels if available
+pip install --only-binary=all pyaudio webrtcvad
+
+# If still having issues, try installing packages individually
+pip install pyaudio
+pip install webrtcvad
+```
+
 ### Quick Start (Virtual Environment)
 ```bash
 # Use the convenience activation script
 cd /path/to/aida/room-client
-source activate.sh
+source scripts/activate.sh
 
 # This will activate the virtual environment and show available commands
 ```
@@ -161,24 +229,24 @@ source activate.sh
 ### Usage on macOS
 ```bash
 # Method 1: Use activation script (recommended)
-source activate.sh
-python client.py --test-audio
+source scripts/activate.sh
+python main.py --test-audio
 
 # Method 2: Manual activation
 source venv/bin/activate
-python client.py --config ~/Library/Application\ Support/Aida/client.json
+python main.py --config ~/Library/Application\ Support/Aida/client.json
 
 # Test audio output
-python client.py --test-audio
+python main.py --test-audio
 
 # List available audio devices
-python3 client.py --list-cards
+python main.py --list-cards
 
 # Interactive setup
-python3 client.py --setup
+python main.py --setup
 
 # Test voice commands (if enabled)
-python3 client.py --test-voice
+python main.py --test-voice
 ```
 
 ### macOS-Specific Notes
@@ -190,9 +258,61 @@ python3 client.py --test-voice
 - **Log Path**: `~/Library/Logs/aida-snapcast.log`
 - **No systemd**: Run manually or use launchd for auto-start
 
+### Linux/WSL-Specific Notes
+
+- **Audio Device Detection**: Uses `aplay -l` to list available sound cards
+- **Audio Testing**: Uses `speaker-test` for audio output testing
+- **Audio Playback**: Uses ALSA/PulseAudio system defaults
+- **Configuration Path**: `~/.config/aida/client.json` or `/etc/aida/client.json`
+- **Log Path**: `/var/log/aida-snapcast.log` or journalctl for systemd
+- **Package Dependencies**: Requires `python3-dev`, `build-essential`, and audio development libraries
+- **WSL Audio**: May require PulseAudio configuration for audio output to Windows
+
+### Development Status in WSL
+
+After running `python main.py --test-audio`, you should see:
+- ✅ **Configuration loading** - Works perfectly
+- ✅ **VAD (Voice Activity Detection)** - Initializes successfully
+- ✅ **Faster-Whisper model loading** - Downloads and loads speech recognition model
+- ✅ **Wake word detection** - "Aida" wake word system ready
+- ✅ **Voice command parsing** - Ready to process commands
+- ❌ **Audio input/output** - Fails due to WSL audio limitations
+
+**WSL Development Workflow**: The core voice recognition and command processing systems work perfectly in WSL. For full audio testing, deploy to a Raspberry Pi or use a Linux VM with audio hardware access.
+
+## WSL Audio Status Update
+
+**✅ COMPLETE**: Full audio functionality working in WSL Ubuntu!
+
+### Successful Configuration:
+- **PulseAudio**: Connected to WSLg audio server (`/mnt/wslg/PulseServer`)  
+- **ALSA**: Configured to route through PulseAudio (`~/.asoundrc`)
+- **PyAudio**: Successfully handles both input and output through Windows audio system
+- **Audio Tests**: Both `speaker-test` and `python main.py --test-audio` work perfectly
+- **Snapclient**: Installed and working (version 0.27.0)
+
+### Status Summary:
+✅ **PyAudio Output**: Working - can play audio through Windows  
+✅ **PyAudio Input**: Working - can record audio from Windows microphone
+✅ **Dependency Build**: Fixed - all packages compile successfully  
+✅ **Room-client Components**: Working - VAD, faster-whisper, wake word detection all initialize  
+✅ **Snapclient**: Installed and connects successfully
+✅ **Voice Pipeline**: Ready for testing with backend server
+
+**Final Status**: WSL audio setup is complete. Room-client starts successfully with all audio components working. Ready for backend integration testing.
+
+---
+
 ## Configuration
 
-The client uses a JSON configuration file stored at `/etc/aida/client.json`:
+The client uses a JSON configuration file. Configuration file locations:
+
+- **Development**: `./client.json` (current directory)
+- **Raspberry Pi**: `/etc/aida/client.json` (system-wide)
+- **macOS**: `~/Library/Application Support/Aida/client.json`
+- **Linux**: `~/.config/aida/client.json` (user-specific)
+
+Example configuration:
 
 ```json
 {
@@ -230,7 +350,8 @@ The client uses a JSON configuration file stored at `/etc/aida/client.json`:
 
 ## Usage
 
-After installation, use the `aida-client` command:
+### On Raspberry Pi (after installation)
+Use the `aida-client` command:
 
 ```bash
 # Start the client
@@ -256,12 +377,43 @@ aida-client test-audio
 
 # Test voice commands (if enabled)
 aida-client test-voice
+```
+
+### Development Usage (macOS/Linux)
+Use the main entry point directly. For development, it's recommended to use a virtual environment:
+
+```bash
+# First time setup (if not already done)
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Daily development usage
+source scripts/activate.sh  # Activates venv and shows commands
+
+# Or manually
+source venv/bin/activate
+
+# Start the client
+python main.py --config client.json
 
 # Enable voice commands for this session
-python3 client.py --enable-voice
+python main.py --enable-voice
 
-# Interactive voice command testing
-python3 voice_commands.py
+# Test audio output
+python main.py --test-audio
+
+# List available audio devices
+python main.py --list-cards
+
+# Interactive setup
+python main.py --setup
+
+# Test voice commands (if enabled)
+python main.py --test-voice
+
+# Interactive voice testing (if voice handler exists)
+python -c "from src.voice.handler import VoiceHandler; VoiceHandler().test()"
 ```
 
 ## Voice Commands
@@ -322,7 +474,7 @@ If the voice commands are picking up too much background noise:
 
 3. **Test your current settings**:
    ```bash
-   python3 voice_commands.py
+   python main.py --test-voice
    ```
 
 ## Audio Setup
