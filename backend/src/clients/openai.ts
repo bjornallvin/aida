@@ -46,7 +46,7 @@ export class OpenAIClient {
     const startTime = Date.now();
 
     const {
-      model = "gpt-3.5-turbo",
+      model = "gpt-4.1-mini",
       maxTokens = 300,
       temperature = 0.7,
       tools,

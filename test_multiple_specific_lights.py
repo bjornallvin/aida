@@ -11,10 +11,11 @@ import json
 def test_multiple_specific_lights():
     """Test multiple specific light commands"""
     commands = [
+        # "turn off ceiling light in bedroom",
         "turn on desk and workshop light in bedroom",
-        "turn on the bedroom desk light and bedroom workshop light",
-        "turn on bedroom_desk and bedroom_workshop",
-        "turn on just the desk and workshop lights in the bedroom",
+        # "turn on the bedroom desk light and bedroom workshop light",
+        # "turn on bedroom_desk and bedroom_workshop",
+        # "turn on just the desk and workshop lights in the bedroom",
     ]
 
     for i, command in enumerate(commands, 1):

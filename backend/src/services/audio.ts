@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
-import { MopidyClient, ElevenLabsClient } from "../clients";
+import { MopidyClient, OpenAITTSClient } from "../clients";
 import { PlayRequest, TTSRequest, PlayResponse, TTSResponse } from "../types";
 import { logger, AudioPlayer } from "../utils";
 import { config } from "../config";
@@ -119,10 +119,10 @@ export class MusicService {
  * Text-to-Speech service for handling TTS operations
  */
 export class TTSService {
-  private elevenlabsClient: ElevenLabsClient;
+  private openaiTTSClient: OpenAITTSClient;
 
-  constructor(elevenlabsClient?: ElevenLabsClient) {
-    this.elevenlabsClient = elevenlabsClient || new ElevenLabsClient();
+  constructor(openaiTTSClient?: OpenAITTSClient) {
+    this.openaiTTSClient = openaiTTSClient || new OpenAITTSClient();
   }
 
   /**
@@ -147,7 +147,7 @@ export class TTSService {
     this.ensureAudioDirectoryExists();
 
     // Generate TTS audio with language parameter
-    const audioStream = await this.elevenlabsClient.generateTTS(text, language);
+    const audioStream = await this.openaiTTSClient.generateTTS(text, language);
 
     // Save to file
     await this.saveAudioStream(audioStream, filePath);
@@ -184,7 +184,7 @@ export class TTSService {
     this.ensureAudioDirectoryExists();
 
     // Generate TTS audio with language parameter
-    const audioStream = await this.elevenlabsClient.generateTTS(text, language);
+    const audioStream = await this.openaiTTSClient.generateTTS(text, language);
 
     // Save to file
     await this.saveAudioStream(audioStream, filePath);

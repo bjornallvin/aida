@@ -9,6 +9,7 @@
         "dev": "ts-node src/server.ts",
         "dev:watch": "nodemon --exec ts-node src/server.ts",
         "clean": "rm -rf dist",
+        "test:tts": "ts-node tests/test-openai-tts.ts",
         "dirigera:setup": "ts-node scripts/dirigera-setup.ts",
         "tradfri:setup": "echo 'Please use dirigera:setup instead - Tradfri has been replaced with DIRIGERA'"
     },

@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
-import { OpenAIClient, ElevenLabsClient } from "../clients";
+import { OpenAIClient, OpenAITTSClient } from "../clients";
 import {
   ChatRequest,
   VoiceCommandRequest,
@@ -21,15 +21,12 @@ import { SMART_HOME_TOOLS, SmartHomeToolExecutor } from "../tools";
  */
 export class AIService {
   private openaiClient: OpenAIClient;
-  private elevenlabsClient: ElevenLabsClient;
+  private openaiTTSClient: OpenAITTSClient;
   private toolExecutor: SmartHomeToolExecutor;
 
-  constructor(
-    openaiClient?: OpenAIClient,
-    elevenlabsClient?: ElevenLabsClient
-  ) {
+  constructor(openaiClient?: OpenAIClient, openaiTTSClient?: OpenAITTSClient) {
     this.openaiClient = openaiClient || new OpenAIClient();
-    this.elevenlabsClient = elevenlabsClient || new ElevenLabsClient();
+    this.openaiTTSClient = openaiTTSClient || new OpenAITTSClient();
     this.toolExecutor = new SmartHomeToolExecutor();
   }
 
@@ -238,7 +235,7 @@ export class AIService {
     text: string,
     language?: "english" | "swedish" | "auto"
   ): Promise<string> {
-    const audioStream = await this.elevenlabsClient.generateTTS(text, language);
+    const audioStream = await this.openaiTTSClient.generateTTS(text, language);
     const responseAudioFile = path.join(
       config.audioDir,
       `response_${uuidv4()}.mp3`

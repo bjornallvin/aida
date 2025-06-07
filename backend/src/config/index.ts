@@ -49,7 +49,7 @@ export class ConfigManager {
   }
 
   private validateConfig(): void {
-    const requiredVars = ["MOPIDY_URL", "OPENAI_API_KEY", "ELEVENLABS_API_KEY"];
+    const requiredVars = ["MOPIDY_URL", "OPENAI_API_KEY"];
 
     const missing = requiredVars.filter((varName) => !process.env[varName]);
 
