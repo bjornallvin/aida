@@ -66,9 +66,15 @@ export class SonosClient {
     this.discoveredDevices = [];
 
     // Create new discovery instance to reset state
-    this.discovery = new DeviceDiscovery();
-
-    return await this.discoverDevices();
+    try {
+      this.discovery = new DeviceDiscovery();
+      return await this.discoverDevices();
+    } catch (error) {
+      logger.error("Failed to recreate discovery instance", {
+        error: (error as Error).message,
+      });
+      throw error;
+    }
   }
 
   /**
@@ -117,7 +123,7 @@ export class SonosClient {
           if (!roomName) {
             try {
               // Try to get device description
-              const zoneAttrs = await sonos.getZoneAttributes();
+              const zoneAttrs = await (sonos as any).getZoneAttrs();
               roomName =
                 zoneAttrs.CurrentZoneName ||
                 `Sonos-${device.host.split(".").pop()}`;
@@ -176,8 +182,8 @@ export class SonosClient {
         reject(error);
       });
 
-      // Start discovery
-      this.discovery.discover();
+      // DeviceDiscovery starts automatically when instantiated
+      // No need to call discover() method - it doesn't exist in this version
     });
   }
 
@@ -350,7 +356,7 @@ export class SonosClient {
   }
 
   /**
-   * Search and play Spotify content
+   * Search and play Spotify content with enhanced error handling
    */
   public async searchAndPlaySpotify(
     roomName: string,
@@ -362,23 +368,162 @@ export class SonosClient {
     }
 
     try {
-      // For Spotify search, we'll use a simplified approach
-      // The newer sonos library has different methods for Spotify
-      const spotifyUri = `spotify:search:${encodeURIComponent(query)}`;
+      logger.info("Attempting Spotify playback", { roomName, query });
 
-      // Try to play from Spotify using queue
-      await device.queue(spotifyUri);
-      await device.play();
+      // First, try the primary Spotify URI approach
+      await this.trySpotifyPlayback(device, query, roomName);
 
-      logger.info("Sonos Spotify search and play", { roomName, query });
-    } catch (error) {
-      logger.error("Failed to search and play Spotify", {
+      logger.info("Sonos Spotify search and play successful", {
         roomName,
         query,
-        error: (error as Error).message,
       });
-      throw error;
+    } catch (error) {
+      const errorMessage = (error as Error).message;
+
+      // Check for UPnP error 804 (authentication/authorization issue)
+      if (this.isUPnPError804(error)) {
+        logger.warning(
+          "UPnP error 804 detected - Spotify authentication issue",
+          {
+            roomName,
+            query,
+            error: errorMessage,
+          }
+        );
+
+        // Try fallback approaches
+        await this.handleSpotifyAuthError(device, query, roomName);
+      } else {
+        logger.error("Failed to search and play Spotify", {
+          roomName,
+          query,
+          error: errorMessage,
+        });
+        throw new Error(
+          `Spotify playback failed: ${errorMessage}. Please check your Spotify account connection in the Sonos app.`
+        );
+      }
     }
+  }
+
+  /**
+   * Check if error is UPnP error 804 or related Spotify authentication errors
+   */
+  private isUPnPError804(error: any): boolean {
+    const errorStr = error?.message || error?.toString() || "";
+    return (
+      errorStr.includes("804") ||
+      errorStr.includes("800") ||
+      errorStr.includes("upnpErrorCode") ||
+      errorStr.includes("statusCode 500")
+    );
+  }
+
+  /**
+   * Get specific UPnP error code from error message
+   */
+  private getUPnPErrorCode(error: any): string | null {
+    const errorStr = error?.message || error?.toString() || "";
+    const match = errorStr.match(/<errorCode>(\d+)<\/errorCode>/);
+    return match ? match[1] : null;
+  }
+
+  /**
+   * Try primary Spotify playback method
+   */
+  private async trySpotifyPlayback(
+    device: any,
+    query: string,
+    roomName: string
+  ): Promise<void> {
+    // Method 1: Standard Spotify search URI
+    const spotifyUri = `spotify:search:${encodeURIComponent(query)}`;
+
+    // Clear queue and add new content
+    await device.flush();
+    await device.queue(spotifyUri);
+    await device.play();
+  }
+
+  /**
+   * Handle Spotify authentication errors with fallback strategies
+   */
+  private async handleSpotifyAuthError(
+    device: any,
+    query: string,
+    roomName: string
+  ): Promise<void> {
+    logger.info("Attempting Spotify fallback methods", { roomName, query });
+
+    try {
+      // Fallback 1: Try alternative Spotify URI format
+      const alternativeUri = `spotify:track:${encodeURIComponent(query)}`;
+      await device.flush();
+      await device.queue(alternativeUri);
+      await device.play();
+
+      logger.info("Spotify fallback successful with track URI", {
+        roomName,
+        query,
+      });
+      return;
+    } catch (fallbackError1) {
+      const errorCode = this.getUPnPErrorCode(fallbackError1);
+      logger.warning("Spotify track URI fallback failed", {
+        roomName,
+        query,
+        upnpErrorCode: errorCode,
+        error: (fallbackError1 as Error).message,
+      });
+    }
+
+    try {
+      // Fallback 2: Try artist search
+      const artistUri = `spotify:artist:${encodeURIComponent(query)}`;
+      await device.flush();
+      await device.queue(artistUri);
+      await device.play();
+
+      logger.info("Spotify fallback successful with artist URI", {
+        roomName,
+        query,
+      });
+      return;
+    } catch (fallbackError2) {
+      const errorCode = this.getUPnPErrorCode(fallbackError2);
+      logger.warning("Spotify artist URI fallback failed", {
+        roomName,
+        query,
+        upnpErrorCode: errorCode,
+        error: (fallbackError2 as Error).message,
+      });
+    }
+
+    // If all fallbacks fail, provide specific guidance based on error patterns
+    const errorMessage = this.getSpotifyErrorGuidance(query);
+    throw new Error(errorMessage);
+  }
+
+  /**
+   * Get specific error guidance based on UPnP error patterns
+   */
+  private getSpotifyErrorGuidance(query: string): string {
+    return `Unable to play "${query}" from Spotify. Based on the error patterns, this appears to be a Spotify account integration issue.
+
+**Common Causes:**
+1. 🔗 Spotify account not properly linked to Sonos
+2. 💳 Spotify Premium subscription required (free accounts have limited Sonos support)
+3. 🌍 Content not available in your region
+4. 🔄 Sonos-Spotify connection needs refresh
+
+**Troubleshooting Steps:**
+1. Open the Sonos app → Settings → Services & Voice → Spotify
+2. Remove and re-add your Spotify account
+3. Ensure you're using a Spotify Premium account
+4. Try searching for the artist directly in the Sonos app first
+5. Check if the content plays in the official Spotify app
+
+**Alternative:** Try a more specific search term like "Tiësto best of" or the full artist name.`;
   }
 
   /**
@@ -432,6 +577,7 @@ export class SonosClient {
 
   /**
    * Play audio from URL on a specific device
+   * Updated to handle radio streams more effectively
    */
   public async playAudioFromUrl(
     roomName: string,
@@ -443,11 +589,15 @@ export class SonosClient {
     }
 
     try {
-      // Clear the queue first to ensure immediate playback
+      // Stop any current playback and clear queue
+      await device.stop();
       await device.flush();
 
-      // Queue the audio URL and play
-      await device.queue(audioUrl);
+      // For radio streams, try different approaches
+      logger.info("Attempting radio stream playback", { roomName, audioUrl });
+
+      // Method 1: Try adding to queue and playing immediately
+      await device.queue(audioUrl, 0); // Position 0 to play immediately
       await device.play();
 
       logger.info("Sonos playing audio from URL", { roomName, audioUrl });
@@ -511,6 +661,46 @@ export class SonosClient {
       logger.error("Failed to play temporary audio", {
         roomName,
         audioUrl,
+        error: (error as Error).message,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Play TuneIn Radio station on a specific device
+   */
+  public async playTuneInRadio(
+    roomName: string,
+    stationId: string,
+    stationName: string
+  ): Promise<void> {
+    const device = this.getDeviceByRoom(roomName);
+    if (!device) {
+      throw new Error(`Sonos device not found for room: ${roomName}`);
+    }
+
+    try {
+      // Use Sonos's built-in TuneIn Radio integration
+      logger.info("Playing TuneIn Radio station", {
+        roomName,
+        stationId,
+        stationName,
+      });
+
+      // Use the playTuneinRadio method we know works
+      await (device as any).playTuneinRadio(stationId, stationName);
+
+      logger.info("Sonos TuneIn Radio playback started", {
+        roomName,
+        stationId,
+        stationName,
+      });
+    } catch (error) {
+      logger.error("Failed to play TuneIn Radio", {
+        roomName,
+        stationId,
+        stationName,
         error: (error as Error).message,
       });
       throw error;

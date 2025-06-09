@@ -39,7 +39,6 @@ export class ConfigManager {
 
     return {
       port,
-      mopidyUrl: process.env.MOPIDY_URL || "http://localhost:6680",
       openaiApiKey: process.env.OPENAI_API_KEY || "",
       elevenlabsApiKey: process.env.ELEVENLABS_API_KEY || "",
       audioDir,
@@ -53,7 +52,7 @@ export class ConfigManager {
   }
 
   private validateConfig(): void {
-    const requiredVars = ["MOPIDY_URL", "OPENAI_API_KEY"];
+    const requiredVars = ["OPENAI_API_KEY"];
 
     const missing = requiredVars.filter((varName) => !process.env[varName]);
 

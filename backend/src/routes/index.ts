@@ -6,6 +6,7 @@ import { AIController } from "./ai";
 import { DeviceController } from "./devices";
 import { SonosController } from "./sonos";
 import ttsSonosRoutes from "./tts-sonos";
+import radioRoutes from "./radio";
 import { uploadConfig } from "../config";
 import { validateRequired } from "../middleware";
 
@@ -170,6 +171,9 @@ export function createRoutes(): Router {
 
   // TTS + Sonos combined routes
   router.use("/tts-sonos", ttsSonosRoutes);
+
+  // Direct radio streaming routes
+  router.use("/radio", radioRoutes);
 
   return router;
 }

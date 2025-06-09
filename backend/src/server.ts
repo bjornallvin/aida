@@ -108,7 +108,6 @@ class AidaServer {
     this.app.listen(config.port, () => {
       logger.info(`Aida apartment AI server started on port ${config.port}`);
       logger.info("Environment check", {
-        mopidyUrl: config.mopidyUrl,
         hasOpenAI: !!config.openaiApiKey,
         hasElevenLabs: !!config.elevenlabsApiKey,
         audioDir: config.audioDir,

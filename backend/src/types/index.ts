@@ -47,16 +47,6 @@ export interface ToolExecutionResult {
   error?: string;
 }
 
-export interface MopidyTrack {
-  uri: string;
-  name: string;
-  artists?: Array<{ name: string }>;
-}
-
-export interface MopidySearchResult {
-  tracks: MopidyTrack[];
-}
-
 export interface AudioFileRequest extends Request {
   file?: Express.Multer.File;
   body: any;
@@ -73,7 +63,7 @@ export interface APIResponse<T = any> {
 export interface PlayResponse {
   room: string;
   type: string;
-  result: MopidyTrack | { uri: string };
+  result: { uri: string };
 }
 
 export interface TTSResponse {
@@ -130,7 +120,6 @@ export interface VoiceCommandSonosResponse {
 
 export interface AppConfig {
   port: number;
-  mopidyUrl: string;
   openaiApiKey: string;
   elevenlabsApiKey: string;
   audioDir: string;

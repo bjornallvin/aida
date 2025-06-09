@@ -1,105 +1,92 @@
 import fs from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
-import { MopidyClient, OpenAITTSClient } from "../clients";
+import { OpenAITTSClient } from "../clients";
 import { PlayRequest, TTSRequest, PlayResponse, TTSResponse } from "../types";
 import { logger, AudioPlayer } from "../utils";
 import { config } from "../config";
 
 /**
  * Music service for handling music playback operations
- * Implements separation of concerns and business logic
+ * NOTE: Mopidy integration has been disabled in favor of radio streaming
  */
 export class MusicService {
-  private mopidyClient: MopidyClient;
-
-  constructor(mopidyClient?: MopidyClient) {
-    this.mopidyClient = mopidyClient || new MopidyClient();
+  constructor() {
+    logger.info("MusicService initialized (Mopidy features disabled)");
   }
 
   /**
    * Handle music playback requests
+   * Returns error since Mopidy features are disabled
    */
   public async playMusic(request: PlayRequest): Promise<PlayResponse> {
-    const { room, type, query, url } = request;
+    const { room, type } = request;
 
-    logger.info("Processing music play request", {
-      room,
-      type,
-      query: query || url,
-    });
-
-    this.validatePlayRequest(request);
-
-    let result;
-
-    if (type === "spotify") {
-      if (!query) {
-        throw new Error("Query is required for Spotify playback");
+    logger.warning(
+      "Music playback attempted but Mopidy features are disabled",
+      {
+        room,
+        type,
       }
-      result = await this.mopidyClient.searchAndPlay(query);
-      logger.info("Spotify track started", { track: result.name, room });
-    } else if (type === "radio") {
-      if (!url) {
-        throw new Error("URL is required for radio playback");
-      }
-      result = await this.mopidyClient.addRadioStream(url);
-      logger.info("Radio stream started", { url, room });
-    } else {
-      throw new Error('Invalid type. Must be "spotify" or "radio"');
-    }
+    );
 
-    return {
-      room,
-      type,
-      result,
-    };
+    throw new Error(
+      "Music playback via Mopidy is disabled. Please use the radio streaming endpoints instead (/radio/*)."
+    );
   }
 
   /**
-   * Pause current playback
+   * Pause current playback - disabled
    */
   public async pauseMusic(): Promise<void> {
-    await this.mopidyClient.pause();
-    logger.info("Music paused");
+    throw new Error(
+      "Music controls via Mopidy are disabled. Please use radio streaming instead."
+    );
   }
 
   /**
-   * Resume playback
+   * Resume playback - disabled
    */
   public async resumeMusic(): Promise<void> {
-    await this.mopidyClient.resume();
-    logger.info("Music resumed");
+    throw new Error(
+      "Music controls via Mopidy are disabled. Please use radio streaming instead."
+    );
   }
 
   /**
-   * Stop playback
+   * Stop playback - disabled
    */
   public async stopMusic(): Promise<void> {
-    await this.mopidyClient.stop();
-    logger.info("Music stopped");
+    throw new Error(
+      "Music controls via Mopidy are disabled. Please use radio streaming instead."
+    );
   }
 
   /**
-   * Set volume
+   * Set volume - disabled
    */
   public async setVolume(volume: number): Promise<void> {
-    await this.mopidyClient.setVolume(volume);
-    logger.info("Volume set", { volume });
+    throw new Error(
+      "Volume control via Mopidy is disabled. Please use Sonos volume controls instead."
+    );
   }
 
   /**
-   * Get current volume
+   * Get current volume - disabled
    */
   public async getVolume(): Promise<number> {
-    return this.mopidyClient.getVolume();
+    throw new Error(
+      "Volume control via Mopidy is disabled. Please use Sonos volume controls instead."
+    );
   }
 
   /**
-   * Get current playback state
+   * Get current playback state - disabled
    */
   public async getPlaybackState(): Promise<string> {
-    return this.mopidyClient.getPlaybackState();
+    throw new Error(
+      "Playback state via Mopidy is disabled. Please use radio streaming instead."
+    );
   }
 
   private validatePlayRequest(request: PlayRequest): void {

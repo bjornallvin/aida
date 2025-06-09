@@ -113,11 +113,26 @@ export class SonosService {
         };
       }
     } catch (error) {
+      const errorMessage = (error as Error).message;
+
+      // Log detailed error for debugging
       logger.error("Sonos play request failed", {
         room,
-        error: (error as Error).message,
+        type,
+        query: query || uri,
+        error: errorMessage,
       });
-      throw error;
+
+      // Re-throw with context for better user experience
+      if (type === "spotify" && errorMessage.includes("Unable to play")) {
+        // This is our enhanced user-friendly error message
+        throw error;
+      } else {
+        // Wrap other errors with additional context
+        throw new Error(
+          `Failed to play ${type || "content"} in ${room}: ${errorMessage}`
+        );
+      }
     }
   }
 
@@ -276,6 +291,32 @@ export class SonosService {
         roomName,
         audioUrl,
         resumeAfter,
+        error: (error as Error).message,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Play TuneIn Radio station on Sonos (for radio integration)
+   */
+  public async playTuneInRadio(
+    roomName: string,
+    stationId: string,
+    stationName: string
+  ): Promise<void> {
+    try {
+      await this.sonosClient.playTuneInRadio(roomName, stationId, stationName);
+      logger.info("Sonos TuneIn Radio started", {
+        roomName,
+        stationId,
+        stationName,
+      });
+    } catch (error) {
+      logger.error("Failed to play TuneIn Radio on Sonos", {
+        roomName,
+        stationId,
+        stationName,
         error: (error as Error).message,
       });
       throw error;

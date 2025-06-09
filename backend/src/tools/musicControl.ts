@@ -1,5 +1,6 @@
 /**
- * Music control tool for Mopidy integration
+ * Music control tool - Mopidy integration disabled
+ * Redirects users to radio streaming functionality
  */
 import { ToolDefinition, ToolExecutionResult } from "./types";
 
@@ -8,13 +9,13 @@ export const MUSIC_CONTROL_TOOL: ToolDefinition = {
   function: {
     name: "control_music",
     description:
-      "Control music playback throughout the apartment using Mopidy.",
+      "Music control via Mopidy is disabled. Recommends radio streaming instead.",
     parameters: {
       type: "object",
       properties: {
         action: {
           type: "string",
-          description: "The music action to perform",
+          description: "The music action attempted",
           enum: [
             "play",
             "pause",
@@ -27,22 +28,9 @@ export const MUSIC_CONTROL_TOOL: ToolDefinition = {
             "search_and_play",
           ],
         },
-        volume: {
-          type: "number",
-          description: "Volume level from 0-100 (used with set_volume action)",
-          minimum: 0,
-          maximum: 100,
-        },
         query: {
           type: "string",
-          description:
-            "Search query for music (artist, song, album, etc.) - used with search_and_play action",
-        },
-        source: {
-          type: "string",
-          description: "Music source to use for search",
-          enum: ["spotify", "youtube", "soundcloud", "local"],
-          default: "spotify",
+          description: "Search query for music",
         },
       },
       required: ["action"],
@@ -52,33 +40,25 @@ export const MUSIC_CONTROL_TOOL: ToolDefinition = {
 
 export class MusicController {
   async controlMusic(params: any): Promise<ToolExecutionResult> {
-    // TODO: Integrate with Mopidy API
-    const { action, volume, query, source } = params;
+    const { action, query } = params;
 
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    let message = "Music control via Mopidy is disabled. ";
 
-    let message = "Music ";
-    switch (action) {
-      case "play":
-        message += "playback started";
-        break;
-      case "pause":
-        message += "paused";
-        break;
-      case "set_volume":
-        message += `volume set to ${volume}%`;
-        break;
-      case "search_and_play":
-        message += `searching and playing "${query}" from ${source}`;
-        break;
-      default:
-        message += `${action} completed`;
+    if (action === "search_and_play" && query) {
+      message += `To play "${query}", please use the radio search and play feature: POST /radio/search-and-play with your query.`;
+    } else {
+      message +=
+        "Please use the radio streaming endpoints (/radio/*) or Sonos controls instead.";
     }
 
     return {
-      success: true,
+      success: false,
       message,
-      data: { action, volume, query, source },
+      data: {
+        action,
+        query,
+        suggestion: "Use /radio/search-and-play for music playback",
+      },
     };
   }
 }
