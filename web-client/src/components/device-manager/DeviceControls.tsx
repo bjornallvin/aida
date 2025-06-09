@@ -43,20 +43,52 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({
               <label className="block text-xs text-gray-600 mb-1">
                 Color Hue: {device.colorHue}°
               </label>
-              <input
-                type="range"
-                min="0"
-                max="360"
-                value={device.colorHue}
-                onChange={(e) =>
-                  onColorHueChange(device, parseInt(e.target.value))
-                }
-                className="w-full h-2 rounded-lg appearance-none cursor-pointer"
-                style={{
-                  background:
-                    "linear-gradient(to right, red 0%, yellow 60deg, green 120deg, cyan 180deg, blue 240deg, magenta 300deg, red 360deg)",
-                }}
-              />
+              <div className="relative">
+                <input
+                  type="range"
+                  min="0"
+                  max="360"
+                  value={device.colorHue}
+                  onChange={(e) =>
+                    onColorHueChange(device, parseInt(e.target.value))
+                  }
+                  className="w-full h-3 rounded-lg cursor-pointer"
+                  style={{
+                    WebkitAppearance: "none",
+                    appearance: "none",
+                    background:
+                      "linear-gradient(to right, #ff0000 0%, #ffff00 16.67%, #00ff00 33.33%, #00ffff 50%, #0000ff 66.67%, #ff00ff 83.33%, #ff0000 100%)",
+                    outline: "none",
+                  }}
+                />
+                <style
+                  dangerouslySetInnerHTML={{
+                    __html: `
+                    input[type="range"]::-webkit-slider-thumb {
+                      -webkit-appearance: none;
+                      appearance: none;
+                      width: 16px;
+                      height: 16px;
+                      border-radius: 50%;
+                      background: #ffffff;
+                      border: 2px solid #333;
+                      cursor: pointer;
+                      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                    }
+                    input[type="range"]::-moz-range-thumb {
+                      width: 16px;
+                      height: 16px;
+                      border-radius: 50%;
+                      background: #ffffff;
+                      border: 2px solid #333;
+                      cursor: pointer;
+                      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                      border: none;
+                    }
+                  `,
+                  }}
+                />
+              </div>
             </div>
           )}
 

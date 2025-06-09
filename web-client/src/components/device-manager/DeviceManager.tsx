@@ -5,6 +5,7 @@ import { DeviceList } from "./DeviceList";
 import { useDeviceManager } from "../../hooks/device-manager/useDeviceManager";
 import { useDeviceControls } from "../../hooks/device-manager/useDeviceControls";
 import { useDeviceColorControls } from "../../hooks/device-manager/useDeviceColorControls";
+import { rgbToHueSaturation } from "../../utils/colorConversion";
 
 export const DeviceManager: React.FC = () => {
   const { state, loadDevices, updateState, updateDevice } = useDeviceManager();
@@ -112,31 +113,56 @@ export const DeviceManager: React.FC = () => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const setColor = (
     deviceId: string,
-    _color: { r: number; g: number; b: number }
+    color: { r: number; g: number; b: number }
   ) => {
     const device = devices.find((d) => d.id === deviceId);
     if (device) {
-      // Convert RGB to hue/saturation - simplified
-      const hue = Math.floor(Math.random() * 360); // Placeholder
+      // Convert RGB to hue/saturation using proper conversion
+      const { hue, saturation } = rgbToHueSaturation(color);
+      console.log(
+        "Setting color:",
+        color,
+        "converted to hue:",
+        hue,
+        "saturation:",
+        saturation
+      ); // For debugging
       return colorControls.handleColorHueChange(device, hue);
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const setGlobalColor = (_color: { r: number; g: number; b: number }) => {
-    const hue = Math.floor(Math.random() * 360); // Placeholder
+  const setGlobalColor = (color: { r: number; g: number; b: number }) => {
+    // Convert RGB to hue/saturation using proper conversion
+    const { hue, saturation } = rgbToHueSaturation(color);
+    console.log(
+      "Setting global color:",
+      color,
+      "converted to hue:",
+      hue,
+      "saturation:",
+      saturation
+    ); // For debugging
     const lightDevice = devices.find((d) => d.type === "light");
     if (lightDevice) {
       return colorControls.handleColorHueChange(lightDevice, hue);
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const setRoomColor = (
     roomName: string,
-    _color: { r: number; g: number; b: number }
+    color: { r: number; g: number; b: number }
   ) => {
-    const hue = Math.floor(Math.random() * 360); // Placeholder
+    // Convert RGB to hue/saturation using proper conversion
+    const { hue, saturation } = rgbToHueSaturation(color);
+    console.log(
+      "Setting room color:",
+      roomName,
+      color,
+      "converted to hue:",
+      hue,
+      "saturation:",
+      saturation
+    ); // For debugging
     const roomDevice = devices.find(
       (d) => d.name.startsWith(roomName) && d.type === "light"
     );
@@ -149,6 +175,20 @@ export const DeviceManager: React.FC = () => {
     const device = devices.find((d) => d.id === deviceId);
     if (device) {
       return colorControls.handleColorTemperatureChange(device, temperature);
+    }
+  };
+
+  const setColorSaturation = (deviceId: string, saturation: number) => {
+    const device = devices.find((d) => d.id === deviceId);
+    if (device) {
+      return colorControls.handleColorSaturationChange(device, saturation);
+    }
+  };
+
+  const setColorHue = (deviceId: string, hue: number) => {
+    const device = devices.find((d) => d.id === deviceId);
+    if (device) {
+      return colorControls.handleColorHueChange(device, hue);
     }
   };
 
@@ -214,7 +254,8 @@ export const DeviceManager: React.FC = () => {
           onCancelEdit={cancelEditing}
           onToggleDevice={toggleDevice}
           onBrightnessChange={setBrightness}
-          onColorChange={setColor}
+          onColorHueChange={setColorHue}
+          onColorSaturationChange={setColorSaturation}
           onColorTemperatureChange={setColorTemperature}
           onToggleRoom={toggleRoomDevices}
           onSetRoomBrightness={setRoomBrightness}

@@ -12,7 +12,8 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
   onCancelEdit,
   onToggleDevice,
   onBrightnessChange,
-  onColorChange,
+  onColorHueChange,
+  onColorSaturationChange,
   onColorTemperatureChange,
 }) => {
   const getDeviceIcon = () => {
@@ -180,14 +181,10 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({
           onBrightnessChange={(device, brightness) =>
             onBrightnessChange(brightness)
           }
-          onColorHueChange={() => {
-            // Convert hue to RGB for the color change callback
-            const color = { r: 255, g: 0, b: 0 }; // Placeholder conversion
-            onColorChange(color);
-          }}
-          onColorSaturationChange={() => {
-            // Handle saturation change - placeholder
-          }}
+          onColorHueChange={(device, hue) => onColorHueChange(hue)}
+          onColorSaturationChange={(device, saturation) =>
+            onColorSaturationChange(saturation)
+          }
           onColorTemperatureChange={(device, temperature) =>
             onColorTemperatureChange(temperature)
           }

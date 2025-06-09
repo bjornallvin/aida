@@ -24,7 +24,8 @@ export interface DeviceCardProps {
   onCancelEdit: () => void;
   onToggleDevice: () => void;
   onBrightnessChange: (brightness: number) => void;
-  onColorChange: (color: { r: number; g: number; b: number }) => void;
+  onColorHueChange: (hue: number) => void;
+  onColorSaturationChange: (saturation: number) => void;
   onColorTemperatureChange: (temperature: number) => void;
 }
 
@@ -55,10 +56,8 @@ export interface DeviceListProps {
   onCancelEdit: () => void;
   onToggleDevice: (deviceId: string) => void;
   onBrightnessChange: (deviceId: string, brightness: number) => void;
-  onColorChange: (
-    deviceId: string,
-    color: { r: number; g: number; b: number }
-  ) => void;
+  onColorHueChange: (deviceId: string, hue: number) => void;
+  onColorSaturationChange: (deviceId: string, saturation: number) => void;
   onColorTemperatureChange: (deviceId: string, temperature: number) => void;
   onToggleRoom: (roomName: string, turnOn: boolean) => void;
   onSetRoomBrightness: (roomName: string, brightness: number) => void;

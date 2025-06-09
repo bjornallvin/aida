@@ -14,7 +14,8 @@ export const DeviceList: React.FC<DeviceListProps> = ({
   onCancelEdit,
   onToggleDevice,
   onBrightnessChange,
-  onColorChange,
+  onColorHueChange,
+  onColorSaturationChange,
   onColorTemperatureChange,
   onToggleRoom,
   onSetRoomBrightness,
@@ -116,7 +117,10 @@ export const DeviceList: React.FC<DeviceListProps> = ({
                     onBrightnessChange={(brightness) =>
                       onBrightnessChange(device.id, brightness)
                     }
-                    onColorChange={(color) => onColorChange(device.id, color)}
+                    onColorHueChange={(hue) => onColorHueChange(device.id, hue)}
+                    onColorSaturationChange={(saturation) =>
+                      onColorSaturationChange(device.id, saturation)
+                    }
                     onColorTemperatureChange={(temp) =>
                       onColorTemperatureChange(device.id, temp)
                     }
