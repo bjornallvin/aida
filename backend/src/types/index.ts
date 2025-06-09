@@ -108,6 +108,26 @@ export interface VoiceCommandResponse {
     | undefined;
 }
 
+export interface VoiceCommandSonosResponse {
+  transcription: string;
+  response: string;
+  sonosPlayback: {
+    room: string;
+    filename: string;
+    success: boolean;
+    message: string;
+  };
+  toolCalls?: ToolCall[];
+  toolResults?: ToolExecutionResult[];
+  usage?:
+    | {
+        total_tokens: number;
+        prompt_tokens: number;
+        completion_tokens: number;
+      }
+    | undefined;
+}
+
 export interface AppConfig {
   port: number;
   mopidyUrl: string;

@@ -339,7 +339,24 @@ class VoiceCommandHandler:
 
                 data = json_response["data"]
                 ai_response = data.get("response", "")
-                audio_file = data.get("audioFile", "")
+
+                # Handle both old format (audioFile) and new format (sonosPlayback)
+                sonos_playback = data.get("sonosPlayback")
+                if sonos_playback:
+                    # New Sonos format - audio was sent directly to speakers
+                    audio_info = f"Audio played on {sonos_playback['room']}"
+                    if sonos_playback["success"]:
+                        logger.info(
+                            "Audio played on Sonos: %s", sonos_playback["message"]
+                        )
+                    else:
+                        logger.error(
+                            "Sonos playback failed: %s", sonos_playback["message"]
+                        )
+                else:
+                    # Legacy format - still check for audioFile
+                    audio_file = data.get("audioFile", "")
+                    audio_info = audio_file
 
                 if not ai_response:
                     logger.error("No response text returned from backend")
@@ -351,8 +368,11 @@ class VoiceCommandHandler:
                 )
 
                 logger.info("AI Response: %s", ai_response)
-                logger.info("Audio file: %s", audio_file)
-                return (ai_response, audio_file)
+                if sonos_playback:
+                    logger.info("Sonos playback: %s", audio_info)
+                else:
+                    logger.info("Audio file: %s", audio_info)
+                return (ai_response, audio_info)
             else:
                 logger.error(
                     "Backend error: %s - %s", response.status_code, response.text

@@ -1,11 +1,13 @@
 import { Request, Response } from "express";
 import { AIService } from "../services";
+import { TTSSonosService } from "../services/tts-sonos";
 import {
   ChatRequest,
   VoiceCommandRequest,
   APIResponse,
   ChatResponse,
   VoiceCommandResponse,
+  VoiceCommandSonosResponse,
   AudioFileRequest,
 } from "../types";
 import { logger } from "../utils";
@@ -15,9 +17,11 @@ import { logger } from "../utils";
  */
 export class AIController {
   private aiService: AIService;
+  private ttsSonosService: TTSSonosService;
 
-  constructor(aiService?: AIService) {
+  constructor(aiService?: AIService, ttsSonosService?: TTSSonosService) {
     this.aiService = aiService || new AIService();
+    this.ttsSonosService = ttsSonosService || new TTSSonosService();
   }
 
   /**
@@ -106,7 +110,7 @@ export class AIController {
   }
 
   /**
-   * Handle combined voice command requests (STT + Chat + TTS)
+   * Handle combined voice command requests (STT + Chat + TTS + Sonos)
    */
   public async voiceCommand(
     req: AudioFileRequest,
@@ -132,12 +136,42 @@ export class AIController {
           : [],
       };
 
-      const result = await this.aiService.processVoiceCommand(
+      // Process the voice command (STT + Chat)
+      const aiResult = await this.aiService.processVoiceCommand(
         req.file,
         voiceRequest
       );
 
-      const response: APIResponse<VoiceCommandResponse> = {
+      // Play the AI response on Sonos speakers
+      const roomName = voiceRequest.roomName || "Living Room"; // Default room if not specified
+      const sonosResult = await this.ttsSonosService.generateAndPlayOnSonos({
+        text: aiResult.response,
+        roomName,
+        language: "auto",
+        resumeAfter: true, // Resume music after AI response
+      });
+
+      const result: VoiceCommandSonosResponse = {
+        transcription: aiResult.transcription,
+        response: aiResult.response,
+        sonosPlayback: {
+          room: sonosResult.room,
+          filename: sonosResult.filename,
+          success: sonosResult.success,
+          message: sonosResult.message,
+        },
+        ...(aiResult.toolCalls &&
+          aiResult.toolCalls.length > 0 && {
+            toolCalls: aiResult.toolCalls,
+          }),
+        ...(aiResult.toolResults &&
+          aiResult.toolResults.length > 0 && {
+            toolResults: aiResult.toolResults,
+          }),
+        usage: aiResult.usage,
+      };
+
+      const response: APIResponse<VoiceCommandSonosResponse> = {
         success: true,
         timestamp: new Date().toISOString(),
         data: result,
@@ -169,7 +203,7 @@ export class AIController {
   }
 
   /**
-   * Handle text-based voice commands (Chat + TTS)
+   * Handle text-based voice commands (Chat + TTS + Sonos)
    */
   public async textVoiceCommand(req: Request, res: Response): Promise<void> {
     try {
@@ -178,15 +212,24 @@ export class AIController {
       // Process chat completion
       const chatResult = await this.aiService.processChat(chatRequest);
 
-      // Generate TTS audio file for the response
-      const responseAudioFile = await this.aiService.generateResponseAudio(
-        chatResult.response
-      );
+      // Play the AI response on Sonos speakers
+      const roomName = chatRequest.roomName || "Living Room"; // Default room if not specified
+      const sonosResult = await this.ttsSonosService.generateAndPlayOnSonos({
+        text: chatResult.response,
+        roomName,
+        language: "auto",
+        resumeAfter: true, // Resume music after AI response
+      });
 
-      const result: VoiceCommandResponse = {
+      const result: VoiceCommandSonosResponse = {
         transcription: chatRequest.message, // Use the input text as "transcription"
         response: chatResult.response,
-        audioFile: `/audio/${require("path").basename(responseAudioFile)}`,
+        sonosPlayback: {
+          room: sonosResult.room,
+          filename: sonosResult.filename,
+          success: sonosResult.success,
+          message: sonosResult.message,
+        },
         ...(chatResult.toolCalls &&
           chatResult.toolCalls.length > 0 && {
             toolCalls: chatResult.toolCalls,
@@ -198,7 +241,7 @@ export class AIController {
         usage: chatResult.usage,
       };
 
-      const response: APIResponse<VoiceCommandResponse> = {
+      const response: APIResponse<VoiceCommandSonosResponse> = {
         success: true,
         timestamp: new Date().toISOString(),
         data: result,

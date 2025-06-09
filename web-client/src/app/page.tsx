@@ -1,15 +1,17 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { useVoiceInterface } from "../hooks/useVoiceInterface";
 import { ConversationDisplay } from "../components/ConversationDisplay";
 import { VoiceControls } from "../components/VoiceControls";
 import { TextInput } from "../components/TextInput";
 import { ErrorDisplay } from "../components/ErrorDisplay";
+import { SonosDeviceSelector } from "../components/SonosDeviceSelector";
 
 export default function Home() {
-  const voiceInterface = useVoiceInterface("web-client");
+  const [selectedSonosRoom, setSelectedSonosRoom] = useState<string>("");
+  const voiceInterface = useVoiceInterface(selectedSonosRoom || "web-client");
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -84,6 +86,14 @@ export default function Home() {
             <h2 className="text-xl font-semibold text-gray-800 mb-6 text-center">
               Voice Interface
             </h2>
+
+            {/* Sonos Device Selection */}
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+              <SonosDeviceSelector
+                selectedRoomName={selectedSonosRoom}
+                onRoomChange={setSelectedSonosRoom}
+              />
+            </div>
 
             <VoiceControls
               isListening={voiceInterface.isListening}
