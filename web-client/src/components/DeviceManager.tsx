@@ -21,6 +21,7 @@ export const DeviceManager: React.FC<DeviceManagerProps> = ({
   const [togglingDevice, setTogglingDevice] = useState<string | null>(null);
   const [togglingRoom, setTogglingRoom] = useState<string | null>(null);
   const [expandedDevice, setExpandedDevice] = useState<string | null>(null);
+  const [expandedRoom, setExpandedRoom] = useState<string | null>(null);
 
   const deviceTypes = ["light", "blinds", "outlet", "airPurifier"];
 
@@ -326,6 +327,157 @@ export const DeviceManager: React.FC<DeviceManagerProps> = ({
     }
   };
 
+  // Room-level control handlers
+  const handleRoomBrightnessChange = async (
+    roomName: string,
+    roomDevices: TradfriDevice[],
+    brightness: number
+  ) => {
+    const lights = roomDevices.filter(
+      (device) => device.type === "light" && device.isOn && device.isReachable
+    );
+
+    if (lights.length === 0) {
+      return;
+    }
+
+    try {
+      // Control all lights in the room
+      const promises = lights.map((light) =>
+        apiService.controlLight(light.id, true, brightness)
+      );
+
+      const results = await Promise.allSettled(promises);
+
+      // Check for failures
+      const failures = results.filter(
+        (result) =>
+          result.status === "rejected" ||
+          (result.status === "fulfilled" && !result.value.success)
+      );
+
+      if (failures.length === 0) {
+        // Update all lights in local state
+        setDevices((prevDevices) =>
+          prevDevices.map((d) =>
+            lights.some((light) => light.id === d.id) ? { ...d, brightness } : d
+          )
+        );
+      } else {
+        setError(
+          `Failed to adjust brightness for ${failures.length} light(s) in ${roomName}`
+        );
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : `Failed to adjust room brightness`
+      );
+    }
+  };
+
+  const handleRoomColorChange = async (
+    roomName: string,
+    roomDevices: TradfriDevice[],
+    colorHue: number,
+    colorSaturation: number
+  ) => {
+    const lights = roomDevices.filter(
+      (device) => device.type === "light" && device.isOn && device.isReachable
+    );
+
+    if (lights.length === 0) {
+      return;
+    }
+
+    try {
+      // Control all lights in the room
+      const promises = lights.map((light) =>
+        apiService.controlLight(
+          light.id,
+          true,
+          undefined,
+          colorHue,
+          colorSaturation
+        )
+      );
+
+      const results = await Promise.allSettled(promises);
+
+      // Check for failures
+      const failures = results.filter(
+        (result) =>
+          result.status === "rejected" ||
+          (result.status === "fulfilled" && !result.value.success)
+      );
+
+      if (failures.length === 0) {
+        // Update all lights in local state
+        setDevices((prevDevices) =>
+          prevDevices.map((d) =>
+            lights.some((light) => light.id === d.id)
+              ? { ...d, colorHue, colorSaturation }
+              : d
+          )
+        );
+      } else {
+        setError(
+          `Failed to change color for ${failures.length} light(s) in ${roomName}`
+        );
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : `Failed to change room color`
+      );
+    }
+  };
+
+  // Helper functions for room-level values
+  const getRoomBrightness = (roomDevices: TradfriDevice[]): number => {
+    const lights = roomDevices.filter(
+      (device) =>
+        device.type === "light" &&
+        device.isOn &&
+        device.brightness !== undefined
+    );
+
+    if (lights.length === 0) return 50; // Default brightness
+
+    const avgBrightness =
+      lights.reduce((sum, device) => sum + (device.brightness || 50), 0) /
+      lights.length;
+    return Math.round(avgBrightness);
+  };
+
+  const getRoomColorHue = (roomDevices: TradfriDevice[]): number => {
+    const lights = roomDevices.filter(
+      (device) =>
+        device.type === "light" && device.isOn && device.colorHue !== undefined
+    );
+
+    if (lights.length === 0) return 0; // Default hue
+
+    const avgHue =
+      lights.reduce((sum, device) => sum + (device.colorHue || 0), 0) /
+      lights.length;
+    return Math.round(avgHue);
+  };
+
+  const getRoomColorSaturation = (roomDevices: TradfriDevice[]): number => {
+    const lights = roomDevices.filter(
+      (device) =>
+        device.type === "light" &&
+        device.isOn &&
+        device.colorSaturation !== undefined
+    );
+
+    if (lights.length === 0) return 100; // Default saturation
+
+    const avgSaturation =
+      lights.reduce((sum, device) => sum + (device.colorSaturation || 100), 0) /
+      lights.length;
+    return Math.round(avgSaturation);
+  };
+
   if (loading && devices.length === 0) {
     return (
       <div className={`device-manager ${className}`}>
@@ -471,12 +623,34 @@ export const DeviceManager: React.FC<DeviceManagerProps> = ({
                         {roomName} ({roomDevices.length})
                       </h2>
 
-                      {/* Room Toggle */}
+                      {/* Room Controls */}
                       {hasControllableDevices && (
                         <div className="flex items-center space-x-3">
                           <span className="text-sm text-gray-600">
                             Room: {anyDeviceOn ? "On" : "Off"}
                           </span>
+
+                          {/* Room Light Controls Button */}
+                          {roomDevices.some(
+                            (device) =>
+                              device.type === "light" &&
+                              device.isOn &&
+                              device.isReachable
+                          ) && (
+                            <button
+                              onClick={() =>
+                                setExpandedRoom(
+                                  expandedRoom === roomName ? null : roomName
+                                )
+                              }
+                              className="px-3 py-1 text-sm text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded transition-colors"
+                            >
+                              {expandedRoom === roomName
+                                ? "Hide Room Controls"
+                                : "Room Controls"}
+                            </button>
+                          )}
+
                           <button
                             onClick={() =>
                               handleRoomToggle(roomName, roomDevices)
@@ -498,6 +672,122 @@ export const DeviceManager: React.FC<DeviceManagerProps> = ({
                         </div>
                       )}
                     </div>
+
+                    {/* Expanded Room Controls */}
+                    {expandedRoom === roomName &&
+                      roomDevices.some(
+                        (device) =>
+                          device.type === "light" &&
+                          device.isOn &&
+                          device.isReachable
+                      ) && (
+                        <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
+                          <h3 className="text-sm font-medium text-gray-700 mb-4">
+                            Room Light Controls - {roomName}
+                          </h3>
+                          <div className="space-y-4">
+                            {/* Room Brightness Control */}
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Room Brightness:{" "}
+                                {getRoomBrightness(roomDevices)}%
+                              </label>
+                              <input
+                                type="range"
+                                min="1"
+                                max="100"
+                                value={getRoomBrightness(roomDevices)}
+                                onChange={(e) =>
+                                  handleRoomBrightnessChange(
+                                    roomName,
+                                    roomDevices,
+                                    parseInt(e.target.value)
+                                  )
+                                }
+                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                              />
+                            </div>
+
+                            {/* Room Color Controls */}
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Room Hue: {getRoomColorHue(roomDevices)}°
+                                </label>
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="360"
+                                  value={getRoomColorHue(roomDevices)}
+                                  onChange={(e) =>
+                                    handleRoomColorChange(
+                                      roomName,
+                                      roomDevices,
+                                      parseInt(e.target.value),
+                                      getRoomColorSaturation(roomDevices)
+                                    )
+                                  }
+                                  className="w-full h-2 rounded-lg appearance-none cursor-pointer"
+                                  style={{
+                                    background:
+                                      "linear-gradient(to right, hsl(0, 100%, 50%), hsl(60, 100%, 50%), hsl(120, 100%, 50%), hsl(180, 100%, 50%), hsl(240, 100%, 50%), hsl(300, 100%, 50%), hsl(360, 100%, 50%))",
+                                  }}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Room Saturation:{" "}
+                                  {getRoomColorSaturation(roomDevices)}%
+                                </label>
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="100"
+                                  value={getRoomColorSaturation(roomDevices)}
+                                  onChange={(e) =>
+                                    handleRoomColorChange(
+                                      roomName,
+                                      roomDevices,
+                                      getRoomColorHue(roomDevices),
+                                      parseInt(e.target.value)
+                                    )
+                                  }
+                                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Room Color Preview */}
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm text-gray-600">
+                                Room Color Preview:
+                              </span>
+                              <div
+                                className="w-8 h-8 rounded-full border border-gray-300"
+                                style={{
+                                  backgroundColor: `hsl(${getRoomColorHue(
+                                    roomDevices
+                                  )}, ${getRoomColorSaturation(
+                                    roomDevices
+                                  )}%, 50%)`,
+                                }}
+                              ></div>
+                              <span className="text-xs text-gray-500">
+                                (
+                                {
+                                  roomDevices.filter(
+                                    (d) =>
+                                      d.type === "light" &&
+                                      d.isOn &&
+                                      d.isReachable
+                                  ).length
+                                }{" "}
+                                lights)
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                   </div>
 
                   <div className="divide-y divide-gray-200">
