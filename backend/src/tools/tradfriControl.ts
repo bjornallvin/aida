@@ -202,7 +202,8 @@ export class TradfriController {
     isOn: boolean,
     brightness?: number,
     colorHue?: number,
-    colorSaturation?: number
+    colorSaturation?: number,
+    colorTemperature?: number
   ): Promise<boolean> {
     if (!this.client) {
       throw new Error("Not connected to DIRIGERA hub");
@@ -218,7 +219,8 @@ export class TradfriController {
           isOn,
           brightness,
           colorHue,
-          colorSaturation
+          colorSaturation,
+          colorTemperature
         );
       }
 
@@ -231,7 +233,8 @@ export class TradfriController {
           brightness,
           undefined,
           colorHue,
-          colorSaturation
+          colorSaturation,
+          colorTemperature
         );
       }
 
@@ -262,7 +265,8 @@ export class TradfriController {
             brightness,
             undefined,
             colorHue,
-            colorSaturation
+            colorSaturation,
+            colorTemperature
           );
         }
 
@@ -318,6 +322,22 @@ export class TradfriController {
             });
           }
         }
+
+        // Set color temperature if provided and light is on
+        if (isOn && colorTemperature !== undefined) {
+          const validTemperature = Math.max(
+            2000,
+            Math.min(6500, colorTemperature)
+          );
+          try {
+            await this.client.lights.setLightTemperature({
+              id: device.id,
+              colorTemperature: validTemperature,
+            });
+          } catch (temperatureError) {
+            console.warn("Failed to set color temperature:", temperatureError);
+          }
+        }
       } else if (device.type === "outlet") {
         await this.client.outlets.setIsOn({ id: device.id, isOn });
       }
@@ -336,7 +356,8 @@ export class TradfriController {
     brightness?: number,
     excludeDevices?: string[],
     colorHue?: number,
-    colorSaturation?: number
+    colorSaturation?: number,
+    colorTemperature?: number
   ): Promise<boolean> {
     if (!this.client) {
       throw new Error("Not connected to DIRIGERA hub");
@@ -415,6 +436,25 @@ export class TradfriController {
             });
           }
         }
+
+        // Set color temperature if provided and light is on
+        if (isOn && colorTemperature !== undefined) {
+          const validTemperature = Math.max(
+            2000,
+            Math.min(6500, colorTemperature)
+          );
+          try {
+            await this.client!.lights.setLightTemperature({
+              id: device.id,
+              colorTemperature: validTemperature,
+            });
+          } catch (temperatureError) {
+            console.warn(
+              `Failed to set color temperature for device ${device.id}:`,
+              temperatureError
+            );
+          }
+        }
       });
 
       await Promise.all(promises);
@@ -431,7 +471,8 @@ export class TradfriController {
     isOn: boolean,
     brightness?: number,
     colorHue?: number,
-    colorSaturation?: number
+    colorSaturation?: number,
+    colorTemperature?: number
   ): Promise<boolean> {
     if (!this.client) {
       throw new Error("Not connected to DIRIGERA hub");
@@ -451,7 +492,8 @@ export class TradfriController {
         brightness,
         undefined,
         colorHue,
-        colorSaturation
+        colorSaturation,
+        colorTemperature
       );
     } catch (error) {
       console.error("Failed to control all lights:", error);

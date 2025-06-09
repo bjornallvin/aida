@@ -22,8 +22,34 @@ export const DeviceManager: React.FC<DeviceManagerProps> = ({
   const [togglingRoom, setTogglingRoom] = useState<string | null>(null);
   const [expandedDevice, setExpandedDevice] = useState<string | null>(null);
   const [expandedRoom, setExpandedRoom] = useState<string | null>(null);
+  const [expandedGlobalControls, setExpandedGlobalControls] = useState(false);
+  const [togglingAllLights, setTogglingAllLights] = useState(false);
+  const [globalBrightnessValue, setGlobalBrightnessValue] = useState<
+    number | null
+  >(null);
+  const [globalColorHueValue, setGlobalColorHueValue] = useState<number | null>(
+    null
+  );
+  const [globalColorSaturationValue, setGlobalColorSaturationValue] = useState<
+    number | null
+  >(null);
+  const [globalColorTemperatureValue, setGlobalColorTemperatureValue] =
+    useState<number | null>(null);
 
   const deviceTypes = ["light", "blinds", "outlet", "airPurifier"];
+
+  // Helper function to determine if a light supports RGB color vs color temperature only
+  const supportsRgbColor = (device: TradfriDevice): boolean => {
+    // If device has colorHue or colorSaturation defined, it supports RGB
+    return (
+      device.colorHue !== undefined || device.colorSaturation !== undefined
+    );
+  };
+
+  const supportsColorTemperature = (device: TradfriDevice): boolean => {
+    // If device has colorTemperature defined, it supports color temperature
+    return device.colorTemperature !== undefined;
+  };
 
   // Helper function to extract room name from device name
   const getRoomName = (deviceName: string): string => {
@@ -327,6 +353,41 @@ export const DeviceManager: React.FC<DeviceManagerProps> = ({
     }
   };
 
+  const handleColorTemperatureChange = async (
+    device: TradfriDevice,
+    colorTemperature: number
+  ) => {
+    if (device.type !== "light" || !device.isOn) {
+      return;
+    }
+
+    try {
+      const response = await apiService.controlLightTemperature(
+        device.id,
+        true,
+        undefined,
+        colorTemperature
+      );
+
+      if (response.success) {
+        // Update the device in the local state
+        setDevices((prevDevices) =>
+          prevDevices.map((d) =>
+            d.id === device.id ? { ...d, colorTemperature } : d
+          )
+        );
+      } else {
+        setError(response.error || "Failed to change color temperature");
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to change color temperature"
+      );
+    }
+  };
+
   // Room-level control handlers
   const handleRoomBrightnessChange = async (
     roomName: string,
@@ -431,6 +492,62 @@ export const DeviceManager: React.FC<DeviceManagerProps> = ({
     }
   };
 
+  const handleRoomColorTemperatureChange = async (
+    roomName: string,
+    roomDevices: TradfriDevice[],
+    colorTemperature: number
+  ) => {
+    const lights = roomDevices.filter(
+      (device) => device.type === "light" && device.isOn && device.isReachable
+    );
+
+    if (lights.length === 0) {
+      return;
+    }
+
+    try {
+      // Control all lights in the room
+      const promises = lights.map((light) =>
+        apiService.controlLightTemperature(
+          light.id,
+          true,
+          undefined,
+          colorTemperature
+        )
+      );
+
+      const results = await Promise.allSettled(promises);
+
+      // Check for failures
+      const failures = results.filter(
+        (result) =>
+          result.status === "rejected" ||
+          (result.status === "fulfilled" && !result.value.success)
+      );
+
+      if (failures.length === 0) {
+        // Update all lights in local state
+        setDevices((prevDevices) =>
+          prevDevices.map((d) =>
+            lights.some((light) => light.id === d.id)
+              ? { ...d, colorTemperature }
+              : d
+          )
+        );
+      } else {
+        setError(
+          `Failed to change color temperature for ${failures.length} light(s) in ${roomName}`
+        );
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : `Failed to change room color temperature`
+      );
+    }
+  };
+
   // Helper functions for room-level values
   const getRoomBrightness = (roomDevices: TradfriDevice[]): number => {
     const lights = roomDevices.filter(
@@ -476,6 +593,368 @@ export const DeviceManager: React.FC<DeviceManagerProps> = ({
       lights.reduce((sum, device) => sum + (device.colorSaturation || 100), 0) /
       lights.length;
     return Math.round(avgSaturation);
+  };
+
+  const getRoomColorTemperature = (roomDevices: TradfriDevice[]): number => {
+    const lights = roomDevices.filter(
+      (device) =>
+        device.type === "light" &&
+        device.isOn &&
+        device.colorTemperature !== undefined
+    );
+
+    if (lights.length === 0) return 3000; // Default temperature
+
+    const avgTemperature =
+      lights.reduce(
+        (sum, device) => sum + (device.colorTemperature || 3000),
+        0
+      ) / lights.length;
+    return Math.round(avgTemperature);
+  };
+
+  // Helper function to check if room has RGB vs color temperature lights
+  const roomSupportsRgbColor = (roomDevices: TradfriDevice[]): boolean => {
+    const lights = roomDevices.filter((device) => device.type === "light");
+    return lights.some((device) => supportsRgbColor(device));
+  };
+
+  const roomSupportsColorTemperature = (
+    roomDevices: TradfriDevice[]
+  ): boolean => {
+    const lights = roomDevices.filter((device) => device.type === "light");
+    return lights.some((device) => supportsColorTemperature(device));
+  };
+
+  // Global light control handlers
+  const handleGlobalLightsToggle = async () => {
+    const allLights = devices.filter(
+      (device) =>
+        device.type === "light" &&
+        device.isOn !== undefined &&
+        device.isReachable
+    );
+
+    if (allLights.length === 0) {
+      return;
+    }
+
+    // Determine the new state - if any light is off, turn all on; if all are on, turn all off
+    const anyLightOff = allLights.some((light) => !light.isOn);
+    const newState = anyLightOff;
+
+    try {
+      setTogglingAllLights(true);
+
+      // Toggle all lights
+      const togglePromises = allLights.map((light) =>
+        apiService.controlLight(light.id, newState)
+      );
+
+      const results = await Promise.allSettled(togglePromises);
+
+      // Check for any failures
+      const failures = results.filter(
+        (result) =>
+          result.status === "rejected" ||
+          (result.status === "fulfilled" && !result.value.success)
+      );
+
+      if (failures.length > 0) {
+        setError(`Failed to control ${failures.length} light(s)`);
+      }
+
+      // Update successful lights in local state
+      setDevices((prevDevices) =>
+        prevDevices.map((device) => {
+          const isLight = allLights.find((light) => light.id === device.id);
+          if (isLight) {
+            const result = results[allLights.indexOf(isLight)];
+            if (result.status === "fulfilled" && result.value.success) {
+              return { ...device, isOn: newState };
+            }
+          }
+          return device;
+        })
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to control all lights"
+      );
+    } finally {
+      setTogglingAllLights(false);
+    }
+  };
+
+  const handleGlobalBrightnessChange = async (brightness: number) => {
+    // Update local state immediately to prevent loops
+    setGlobalBrightnessValue(brightness);
+
+    const allLights = devices.filter(
+      (device) => device.type === "light" && device.isOn && device.isReachable
+    );
+
+    if (allLights.length === 0) {
+      return;
+    }
+
+    try {
+      // Control all lights
+      const promises = allLights.map((light) =>
+        apiService.controlLight(light.id, true, brightness)
+      );
+
+      const results = await Promise.allSettled(promises);
+
+      // Check for failures
+      const failures = results.filter(
+        (result) =>
+          result.status === "rejected" ||
+          (result.status === "fulfilled" && !result.value.success)
+      );
+
+      if (failures.length === 0) {
+        // Update all lights in local state
+        setDevices((prevDevices) =>
+          prevDevices.map((d) =>
+            allLights.some((light) => light.id === d.id)
+              ? { ...d, brightness }
+              : d
+          )
+        );
+        // Clear the local override since devices are now updated
+        setGlobalBrightnessValue(null);
+      } else {
+        setError(`Failed to adjust brightness for ${failures.length} light(s)`);
+        // Keep the local value on failure
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to adjust global brightness"
+      );
+    }
+  };
+
+  const handleGlobalColorChange = async (
+    colorHue: number,
+    colorSaturation: number
+  ) => {
+    // Update local state immediately to prevent loops
+    setGlobalColorHueValue(colorHue);
+    setGlobalColorSaturationValue(colorSaturation);
+
+    const allLights = devices.filter(
+      (device) => device.type === "light" && device.isOn && device.isReachable
+    );
+
+    if (allLights.length === 0) {
+      return;
+    }
+
+    try {
+      // Control all lights
+      const promises = allLights.map((light) =>
+        apiService.controlLight(
+          light.id,
+          true,
+          undefined,
+          colorHue,
+          colorSaturation
+        )
+      );
+
+      const results = await Promise.allSettled(promises);
+
+      // Check for failures
+      const failures = results.filter(
+        (result) =>
+          result.status === "rejected" ||
+          (result.status === "fulfilled" && !result.value.success)
+      );
+
+      if (failures.length === 0) {
+        // Update all lights in local state
+        setDevices((prevDevices) =>
+          prevDevices.map((d) =>
+            allLights.some((light) => light.id === d.id)
+              ? { ...d, colorHue, colorSaturation }
+              : d
+          )
+        );
+        // Clear the local overrides since devices are now updated
+        setGlobalColorHueValue(null);
+        setGlobalColorSaturationValue(null);
+      } else {
+        setError(`Failed to change color for ${failures.length} light(s)`);
+        // Keep the local values on failure
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to change global color"
+      );
+    }
+  };
+
+  const handleGlobalColorTemperatureChange = async (
+    colorTemperature: number
+  ) => {
+    // Update local state immediately to prevent loops
+    setGlobalColorTemperatureValue(colorTemperature);
+
+    const allLights = devices.filter(
+      (device) => device.type === "light" && device.isOn && device.isReachable
+    );
+
+    if (allLights.length === 0) {
+      return;
+    }
+
+    try {
+      // Control all lights
+      const promises = allLights.map((light) =>
+        apiService.controlLightTemperature(
+          light.id,
+          true,
+          undefined,
+          colorTemperature
+        )
+      );
+
+      const results = await Promise.allSettled(promises);
+
+      // Check for failures
+      const failures = results.filter(
+        (result) =>
+          result.status === "rejected" ||
+          (result.status === "fulfilled" && !result.value.success)
+      );
+
+      if (failures.length === 0) {
+        // Update all lights in local state
+        setDevices((prevDevices) =>
+          prevDevices.map((d) =>
+            allLights.some((light) => light.id === d.id)
+              ? { ...d, colorTemperature }
+              : d
+          )
+        );
+        // Clear the local override since devices are now updated
+        setGlobalColorTemperatureValue(null);
+      } else {
+        setError(
+          `Failed to change color temperature for ${failures.length} light(s)`
+        );
+        // Keep the local value on failure
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to change global color temperature"
+      );
+    }
+  };
+
+  // Helper functions for global values
+  const getGlobalBrightness = (): number => {
+    // Use local override value if available (during user interaction)
+    if (globalBrightnessValue !== null) {
+      return globalBrightnessValue;
+    }
+
+    const lights = devices.filter(
+      (device) =>
+        device.type === "light" &&
+        device.isOn &&
+        device.brightness !== undefined
+    );
+
+    if (lights.length === 0) return 50; // Default brightness
+
+    const avgBrightness =
+      lights.reduce((sum, device) => sum + (device.brightness || 50), 0) /
+      lights.length;
+    return Math.round(avgBrightness);
+  };
+
+  const getGlobalColorHue = (): number => {
+    // Use local override value if available (during user interaction)
+    if (globalColorHueValue !== null) {
+      return globalColorHueValue;
+    }
+
+    const lights = devices.filter(
+      (device) =>
+        device.type === "light" && device.isOn && device.colorHue !== undefined
+    );
+
+    if (lights.length === 0) return 0; // Default hue
+
+    const avgHue =
+      lights.reduce((sum, device) => sum + (device.colorHue || 0), 0) /
+      lights.length;
+    return Math.round(avgHue);
+  };
+
+  const getGlobalColorSaturation = (): number => {
+    // Use local override value if available (during user interaction)
+    if (globalColorSaturationValue !== null) {
+      return globalColorSaturationValue;
+    }
+
+    const lights = devices.filter(
+      (device) =>
+        device.type === "light" &&
+        device.isOn &&
+        device.colorSaturation !== undefined
+    );
+
+    if (lights.length === 0) return 100; // Default saturation
+
+    const avgSaturation =
+      lights.reduce((sum, device) => sum + (device.colorSaturation || 100), 0) /
+      lights.length;
+    return Math.round(avgSaturation);
+  };
+
+  const getGlobalColorTemperature = (): number => {
+    // Use local override value if available (during user interaction)
+    if (globalColorTemperatureValue !== null) {
+      return globalColorTemperatureValue;
+    }
+
+    const lights = devices.filter(
+      (device) =>
+        device.type === "light" &&
+        device.isOn &&
+        device.colorTemperature !== undefined
+    );
+
+    if (lights.length === 0) return 3000; // Default temperature
+
+    const avgTemperature =
+      lights.reduce(
+        (sum, device) => sum + (device.colorTemperature || 3000),
+        0
+      ) / lights.length;
+    return Math.round(avgTemperature);
+  };
+
+  // Helper functions to check global device capabilities
+  const globalSupportsRgbColor = (): boolean => {
+    const lights = devices.filter(
+      (device) => device.type === "light" && device.isOn
+    );
+    return lights.some((device) => supportsRgbColor(device));
+  };
+
+  const globalSupportsColorTemperature = (): boolean => {
+    const lights = devices.filter(
+      (device) => device.type === "light" && device.isOn
+    );
+    return lights.some((device) => supportsColorTemperature(device));
   };
 
   if (loading && devices.length === 0) {
@@ -537,6 +1016,217 @@ export const DeviceManager: React.FC<DeviceManagerProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Global Light Controls */}
+      {(() => {
+        const allLights = devices.filter((device) => device.type === "light");
+        const reachableLights = allLights.filter(
+          (device) => device.isReachable
+        );
+        const onLights = reachableLights.filter((device) => device.isOn);
+
+        if (allLights.length === 0) return null;
+
+        const anyLightOn = onLights.length > 0;
+        const allLightsOn =
+          reachableLights.length > 0 &&
+          reachableLights.every((device) => device.isOn);
+
+        return (
+          <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <h2 className="text-lg font-medium text-gray-800">
+                  💡 All Lights ({allLights.length})
+                </h2>
+                <span className="text-sm text-gray-600">
+                  Status: {anyLightOn ? `${onLights.length} On` : "All Off"}
+                </span>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                {/* Global Light Controls Button */}
+                {onLights.length > 0 && (
+                  <button
+                    onClick={() =>
+                      setExpandedGlobalControls(!expandedGlobalControls)
+                    }
+                    className="px-3 py-1 text-sm text-orange-600 hover:text-orange-800 hover:bg-orange-50 rounded transition-colors"
+                  >
+                    {expandedGlobalControls
+                      ? "Hide Global Controls"
+                      : "Global Controls"}
+                  </button>
+                )}
+
+                {/* Global Toggle Switch */}
+                <span className="text-sm text-gray-600">All Lights:</span>
+                <button
+                  onClick={handleGlobalLightsToggle}
+                  disabled={togglingAllLights || reachableLights.length === 0}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-50 ${
+                    allLightsOn ? "bg-orange-600" : "bg-gray-200"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      allLightsOn ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+                {togglingAllLights && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500"></div>
+                )}
+              </div>
+            </div>
+
+            {/* Expanded Global Controls */}
+            {expandedGlobalControls && onLights.length > 0 && (
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <h3 className="text-sm font-medium text-gray-700 mb-4">
+                  Global Light Controls - {onLights.length} Active Light
+                  {onLights.length !== 1 ? "s" : ""}
+                </h3>
+                <div className="space-y-4">
+                  {/* Global Brightness Control */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-2">
+                      Brightness: {getGlobalBrightness()}%
+                    </label>
+                    <input
+                      type="range"
+                      min="1"
+                      max="100"
+                      value={getGlobalBrightness()}
+                      onChange={(e) =>
+                        handleGlobalBrightnessChange(parseInt(e.target.value))
+                      }
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                    />
+                  </div>
+
+                  {/* Conditional Global Color Controls */}
+                  {globalSupportsRgbColor() ? (
+                    // RGB Color Controls for global lights with RGB support
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-2">
+                            Hue: {getGlobalColorHue()}°
+                          </label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="360"
+                            value={getGlobalColorHue()}
+                            onChange={(e) =>
+                              handleGlobalColorChange(
+                                parseInt(e.target.value),
+                                getGlobalColorSaturation()
+                              )
+                            }
+                            className="w-full h-2 bg-gradient-to-r from-red-500 via-yellow-500 to-red-500 rounded-lg appearance-none cursor-pointer"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-2">
+                            Saturation: {getGlobalColorSaturation()}%
+                          </label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={getGlobalColorSaturation()}
+                            onChange={(e) =>
+                              handleGlobalColorChange(
+                                getGlobalColorHue(),
+                                parseInt(e.target.value)
+                              )
+                            }
+                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Global RGB Color Preview */}
+                      <div className="flex items-center space-x-3">
+                        <span className="text-xs font-medium text-gray-600">
+                          Color Preview:
+                        </span>
+                        <div
+                          className="w-8 h-8 rounded-full border border-gray-300"
+                          style={{
+                            backgroundColor: `hsl(${getGlobalColorHue()}, ${getGlobalColorSaturation()}%, 50%)`,
+                          }}
+                        ></div>
+                        <span className="text-xs text-gray-500">
+                          (
+                          {
+                            devices.filter(
+                              (device) =>
+                                device.type === "light" &&
+                                device.isOn &&
+                                supportsRgbColor(device)
+                            ).length
+                          }{" "}
+                          RGB lights)
+                        </span>
+                      </div>
+                    </>
+                  ) : globalSupportsColorTemperature() ? (
+                    // Color Temperature Control for global lights with temperature support
+                    <>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-2">
+                          Color Temperature: {getGlobalColorTemperature()}K
+                        </label>
+                        <input
+                          type="range"
+                          min="2000"
+                          max="6500"
+                          value={getGlobalColorTemperature()}
+                          onChange={(e) =>
+                            handleGlobalColorTemperatureChange(
+                              parseInt(e.target.value)
+                            )
+                          }
+                          className="w-full h-2 rounded-lg appearance-none cursor-pointer"
+                          style={{
+                            background:
+                              "linear-gradient(to right, #ffa500 0%, #ffffff 50%, #87ceeb 100%)",
+                          }}
+                        />
+                        <div className="flex justify-between text-xs text-gray-500 mt-1">
+                          <span>Warm (2000K)</span>
+                          <span>Cool (6500K)</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-3">
+                        <span className="text-xs font-medium text-gray-600">
+                          Global lights:
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          (
+                          {
+                            devices.filter(
+                              (device) =>
+                                device.type === "light" &&
+                                device.isOn &&
+                                supportsColorTemperature(device)
+                            ).length
+                          }{" "}
+                          temperature-controllable lights)
+                        </span>
+                      </div>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Error Display */}
       {error && (
@@ -708,83 +1398,139 @@ export const DeviceManager: React.FC<DeviceManagerProps> = ({
                               />
                             </div>
 
-                            {/* Room Color Controls */}
-                            <div className="grid grid-cols-2 gap-4">
+                            {/* Conditional Room Color Controls */}
+                            {roomSupportsRgbColor(roomDevices) ? (
+                              // RGB Color Controls (Hue/Saturation) for rooms with RGB lights
+                              <>
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                      Room Hue: {getRoomColorHue(roomDevices)}°
+                                    </label>
+                                    <input
+                                      type="range"
+                                      min="0"
+                                      max="360"
+                                      value={getRoomColorHue(roomDevices)}
+                                      onChange={(e) =>
+                                        handleRoomColorChange(
+                                          roomName,
+                                          roomDevices,
+                                          parseInt(e.target.value),
+                                          getRoomColorSaturation(roomDevices)
+                                        )
+                                      }
+                                      className="w-full h-2 rounded-lg appearance-none cursor-pointer"
+                                      style={{
+                                        background:
+                                          "linear-gradient(to right, hsl(0, 100%, 50%), hsl(60, 100%, 50%), hsl(120, 100%, 50%), hsl(180, 100%, 50%), hsl(240, 100%, 50%), hsl(300, 100%, 50%), hsl(360, 100%, 50%))",
+                                      }}
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                      Room Saturation:{" "}
+                                      {getRoomColorSaturation(roomDevices)}%
+                                    </label>
+                                    <input
+                                      type="range"
+                                      min="0"
+                                      max="100"
+                                      value={getRoomColorSaturation(
+                                        roomDevices
+                                      )}
+                                      onChange={(e) =>
+                                        handleRoomColorChange(
+                                          roomName,
+                                          roomDevices,
+                                          getRoomColorHue(roomDevices),
+                                          parseInt(e.target.value)
+                                        )
+                                      }
+                                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                    />
+                                  </div>
+                                </div>
+
+                                {/* Room RGB Color Preview */}
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-sm text-gray-600">
+                                    Room Color Preview:
+                                  </span>
+                                  <div
+                                    className="w-8 h-8 rounded-full border border-gray-300"
+                                    style={{
+                                      backgroundColor: `hsl(${getRoomColorHue(
+                                        roomDevices
+                                      )}, ${getRoomColorSaturation(
+                                        roomDevices
+                                      )}%, 50%)`,
+                                    }}
+                                  ></div>
+                                  <span className="text-xs text-gray-500">
+                                    (
+                                    {
+                                      roomDevices.filter(
+                                        (d) =>
+                                          d.type === "light" &&
+                                          d.isOn &&
+                                          d.isReachable &&
+                                          supportsRgbColor(d)
+                                      ).length
+                                    }{" "}
+                                    RGB lights)
+                                  </span>
+                                </div>
+                              </>
+                            ) : roomSupportsColorTemperature(roomDevices) ? (
+                              // Color Temperature Control for rooms with temperature-only lights
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                  Room Hue: {getRoomColorHue(roomDevices)}°
+                                  Room Color Temperature:{" "}
+                                  {getRoomColorTemperature(roomDevices)}K
                                 </label>
                                 <input
                                   type="range"
-                                  min="0"
-                                  max="360"
-                                  value={getRoomColorHue(roomDevices)}
+                                  min="2000"
+                                  max="6500"
+                                  value={getRoomColorTemperature(roomDevices)}
                                   onChange={(e) =>
-                                    handleRoomColorChange(
+                                    handleRoomColorTemperatureChange(
                                       roomName,
                                       roomDevices,
-                                      parseInt(e.target.value),
-                                      getRoomColorSaturation(roomDevices)
+                                      parseInt(e.target.value)
                                     )
                                   }
                                   className="w-full h-2 rounded-lg appearance-none cursor-pointer"
                                   style={{
                                     background:
-                                      "linear-gradient(to right, hsl(0, 100%, 50%), hsl(60, 100%, 50%), hsl(120, 100%, 50%), hsl(180, 100%, 50%), hsl(240, 100%, 50%), hsl(300, 100%, 50%), hsl(360, 100%, 50%))",
+                                      "linear-gradient(to right, #ffa500 0%, #ffffff 50%, #87ceeb 100%)",
                                   }}
                                 />
+                                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                                  <span>Warm (2000K)</span>
+                                  <span>Cool (6500K)</span>
+                                </div>
+                                <div className="flex items-center space-x-2 mt-2">
+                                  <span className="text-sm text-gray-600">
+                                    Room lights:
+                                  </span>
+                                  <span className="text-xs text-gray-500">
+                                    (
+                                    {
+                                      roomDevices.filter(
+                                        (d) =>
+                                          d.type === "light" &&
+                                          d.isOn &&
+                                          d.isReachable &&
+                                          supportsColorTemperature(d)
+                                      ).length
+                                    }{" "}
+                                    temperature-controllable lights)
+                                  </span>
+                                </div>
                               </div>
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                  Room Saturation:{" "}
-                                  {getRoomColorSaturation(roomDevices)}%
-                                </label>
-                                <input
-                                  type="range"
-                                  min="0"
-                                  max="100"
-                                  value={getRoomColorSaturation(roomDevices)}
-                                  onChange={(e) =>
-                                    handleRoomColorChange(
-                                      roomName,
-                                      roomDevices,
-                                      getRoomColorHue(roomDevices),
-                                      parseInt(e.target.value)
-                                    )
-                                  }
-                                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                                />
-                              </div>
-                            </div>
-
-                            {/* Room Color Preview */}
-                            <div className="flex items-center space-x-2">
-                              <span className="text-sm text-gray-600">
-                                Room Color Preview:
-                              </span>
-                              <div
-                                className="w-8 h-8 rounded-full border border-gray-300"
-                                style={{
-                                  backgroundColor: `hsl(${getRoomColorHue(
-                                    roomDevices
-                                  )}, ${getRoomColorSaturation(
-                                    roomDevices
-                                  )}%, 50%)`,
-                                }}
-                              ></div>
-                              <span className="text-xs text-gray-500">
-                                (
-                                {
-                                  roomDevices.filter(
-                                    (d) =>
-                                      d.type === "light" &&
-                                      d.isOn &&
-                                      d.isReachable
-                                  ).length
-                                }{" "}
-                                lights)
-                              </span>
-                            </div>
+                            ) : null}
                           </div>
                         </div>
                       )}
@@ -969,68 +1715,110 @@ export const DeviceManager: React.FC<DeviceManagerProps> = ({
                                   </div>
 
                                   {/* Color Controls */}
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <div>
+                                  {supportsRgbColor(device) && (
+                                    // RGB Color Controls (Hue/Saturation)
+                                    <>
+                                      <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Hue: {device.colorHue || 0}°
+                                          </label>
+                                          <input
+                                            type="range"
+                                            min="0"
+                                            max="360"
+                                            value={device.colorHue || 0}
+                                            onChange={(e) =>
+                                              handleColorChange(
+                                                device,
+                                                parseInt(e.target.value),
+                                                device.colorSaturation || 100
+                                              )
+                                            }
+                                            className="w-full h-2 rounded-lg appearance-none cursor-pointer"
+                                            style={{
+                                              background:
+                                                "linear-gradient(to right, hsl(0, 100%, 50%), hsl(60, 100%, 50%), hsl(120, 100%, 50%), hsl(180, 100%, 50%), hsl(240, 100%, 50%), hsl(300, 100%, 50%), hsl(360, 100%, 50%))",
+                                            }}
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Saturation:{" "}
+                                            {device.colorSaturation || 100}%
+                                          </label>
+                                          <input
+                                            type="range"
+                                            min="0"
+                                            max="100"
+                                            value={
+                                              device.colorSaturation || 100
+                                            }
+                                            onChange={(e) =>
+                                              handleColorChange(
+                                                device,
+                                                device.colorHue || 0,
+                                                parseInt(e.target.value)
+                                              )
+                                            }
+                                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                          />
+                                        </div>
+                                      </div>
+
+                                      {/* Color Preview */}
+                                      <div className="flex items-center space-x-2">
+                                        <span className="text-sm text-gray-600">
+                                          Color Preview:
+                                        </span>
+                                        <div
+                                          className="w-8 h-8 rounded-full border border-gray-300"
+                                          style={{
+                                            backgroundColor: `hsl(${
+                                              device.colorHue || 0
+                                            }, ${
+                                              device.colorSaturation || 100
+                                            }%, 50%)`,
+                                          }}
+                                        />
+                                      </div>
+                                    </>
+                                  )}
+
+                                  {supportsColorTemperature(device) && (
+                                    // Color Temperature Control
+                                    <div
+                                      className={
+                                        supportsRgbColor(device) ? "mt-4" : ""
+                                      }
+                                    >
                                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Hue: {device.colorHue || 0}°
+                                        Color Temperature:{" "}
+                                        {device.colorTemperature || 3000}K
                                       </label>
                                       <input
                                         type="range"
-                                        min="0"
-                                        max="360"
-                                        value={device.colorHue || 0}
+                                        min="2000"
+                                        max="6500"
+                                        value={device.colorTemperature || 3000}
                                         onChange={(e) =>
-                                          handleColorChange(
+                                          handleColorTemperatureChange(
                                             device,
-                                            parseInt(e.target.value),
-                                            device.colorSaturation || 100
+                                            parseInt(e.target.value)
                                           )
                                         }
                                         className="w-full h-2 rounded-lg appearance-none cursor-pointer"
                                         style={{
                                           background:
-                                            "linear-gradient(to right, hsl(0, 100%, 50%), hsl(60, 100%, 50%), hsl(120, 100%, 50%), hsl(180, 100%, 50%), hsl(240, 100%, 50%), hsl(300, 100%, 50%), hsl(360, 100%, 50%))",
+                                            "linear-gradient(to right, #ffa500 0%, #ffffff 50%, #87ceeb 100%)",
                                         }}
                                       />
+                                      <div className="flex justify-between text-xs text-gray-500 mt-1">
+                                        <span>Warm (2000K)</span>
+                                        <span>Cool (6500K)</span>
+                                      </div>
                                     </div>
-                                    <div>
-                                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Saturation:{" "}
-                                        {device.colorSaturation || 100}%
-                                      </label>
-                                      <input
-                                        type="range"
-                                        min="0"
-                                        max="100"
-                                        value={device.colorSaturation || 100}
-                                        onChange={(e) =>
-                                          handleColorChange(
-                                            device,
-                                            device.colorHue || 0,
-                                            parseInt(e.target.value)
-                                          )
-                                        }
-                                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                                      />
-                                    </div>
-                                  </div>
-
-                                  {/* Color Preview */}
-                                  <div className="flex items-center space-x-2">
-                                    <span className="text-sm text-gray-600">
-                                      Color Preview:
-                                    </span>
-                                    <div
-                                      className="w-8 h-8 rounded-full border border-gray-300"
-                                      style={{
-                                        backgroundColor: `hsl(${
-                                          device.colorHue || 0
-                                        }, ${
-                                          device.colorSaturation || 100
-                                        }%, 50%)`,
-                                      }}
-                                    ></div>
-                                  </div>
+                                  )}
                                 </div>
                               </div>
                             )}

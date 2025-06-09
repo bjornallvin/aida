@@ -314,6 +314,58 @@ class ApiService {
       throw error;
     }
   }
+
+  async controlLightTemperature(
+    deviceId: string,
+    isOn: boolean,
+    brightness?: number,
+    colorTemperature?: number
+  ): Promise<LightControlResponse> {
+    try {
+      const body: {
+        isOn: boolean;
+        brightness?: number;
+        colorTemperature?: number;
+      } = { isOn };
+
+      if (brightness !== undefined) {
+        body.brightness = brightness;
+      }
+      if (colorTemperature !== undefined) {
+        body.colorTemperature = colorTemperature;
+      }
+
+      const response = await fetch(
+        `${this.baseUrl}/devices/${deviceId}/light`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        }
+      );
+
+      if (!response.ok) {
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.error) {
+            errorMessage += ` - ${errorData.error}`;
+          }
+        } catch {
+          // If we can't parse the error response, use the status text
+          errorMessage += ` - ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Control light temperature failed:", error);
+      throw error;
+    }
+  }
 }
 
 export const apiService = new ApiService();
