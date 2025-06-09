@@ -20,6 +20,7 @@ export const DeviceManager: React.FC<DeviceManagerProps> = ({
   const [updating, setUpdating] = useState<string | null>(null);
   const [togglingDevice, setTogglingDevice] = useState<string | null>(null);
   const [togglingRoom, setTogglingRoom] = useState<string | null>(null);
+  const [expandedDevice, setExpandedDevice] = useState<string | null>(null);
 
   const deviceTypes = ["light", "blinds", "outlet", "airPurifier"];
 
@@ -260,6 +261,71 @@ export const DeviceManager: React.FC<DeviceManagerProps> = ({
     return { text: "Online", color: "text-blue-600 bg-blue-100" };
   };
 
+  const handleBrightnessChange = async (
+    device: TradfriDevice,
+    brightness: number
+  ) => {
+    if (device.type !== "light" || !device.isOn) {
+      return;
+    }
+
+    try {
+      const response = await apiService.controlLight(
+        device.id,
+        true,
+        brightness
+      );
+
+      if (response.success) {
+        // Update the device in the local state
+        setDevices((prevDevices) =>
+          prevDevices.map((d) =>
+            d.id === device.id ? { ...d, brightness } : d
+          )
+        );
+      } else {
+        setError(response.error || "Failed to adjust brightness");
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to adjust brightness"
+      );
+    }
+  };
+
+  const handleColorChange = async (
+    device: TradfriDevice,
+    colorHue: number,
+    colorSaturation: number
+  ) => {
+    if (device.type !== "light" || !device.isOn) {
+      return;
+    }
+
+    try {
+      const response = await apiService.controlLight(
+        device.id,
+        true,
+        undefined,
+        colorHue,
+        colorSaturation
+      );
+
+      if (response.success) {
+        // Update the device in the local state
+        setDevices((prevDevices) =>
+          prevDevices.map((d) =>
+            d.id === device.id ? { ...d, colorHue, colorSaturation } : d
+          )
+        );
+      } else {
+        setError(response.error || "Failed to change color");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to change color");
+    }
+  };
+
   if (loading && devices.length === 0) {
     return (
       <div className={`device-manager ${className}`}>
@@ -441,125 +507,244 @@ export const DeviceManager: React.FC<DeviceManagerProps> = ({
                       const isUpdating = updating === device.id;
 
                       return (
-                        <div key={device.id} className="p-4 hover:bg-gray-50">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
-                              <div className="text-2xl">
-                                {getDeviceIcon(device.type)}
-                              </div>
-                              <div className="flex-1">
-                                {isEditing ? (
-                                  <div className="flex items-center space-x-2">
-                                    <input
-                                      type="text"
-                                      value={newName}
-                                      onChange={(e) =>
-                                        setNewName(e.target.value)
-                                      }
-                                      className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                      autoFocus
-                                      onKeyPress={(e) => {
-                                        if (e.key === "Enter") {
-                                          handleEditSave(device.id);
-                                        } else if (e.key === "Escape") {
-                                          handleEditCancel();
+                        <React.Fragment key={device.id}>
+                          <div className="p-4 hover:bg-gray-50">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-3">
+                                <div className="text-2xl">
+                                  {getDeviceIcon(device.type)}
+                                </div>
+                                <div className="flex-1">
+                                  {isEditing ? (
+                                    <div className="flex items-center space-x-2">
+                                      <input
+                                        type="text"
+                                        value={newName}
+                                        onChange={(e) =>
+                                          setNewName(e.target.value)
                                         }
-                                      }}
-                                    />
-                                    <button
-                                      onClick={() => handleEditSave(device.id)}
-                                      disabled={isUpdating || !newName.trim()}
-                                      className="px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 disabled:opacity-50"
-                                    >
-                                      {isUpdating ? "..." : "Save"}
-                                    </button>
-                                    <button
-                                      onClick={handleEditCancel}
-                                      disabled={isUpdating}
-                                      className="px-2 py-1 bg-gray-500 text-white text-xs rounded hover:bg-gray-600 disabled:opacity-50"
-                                    >
-                                      Cancel
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <div>
-                                    <h3 className="text-lg font-medium text-gray-800">
-                                      {device.name}
-                                    </h3>
-                                    <div className="flex items-center space-x-2 mt-1">
-                                      <span className="text-sm text-gray-500 capitalize">
-                                        {device.type}
-                                      </span>
-                                      <span className="text-gray-300">•</span>
-                                      <span className="text-xs text-gray-400">
-                                        ID: {device.id}
-                                      </span>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="flex items-center space-x-3">
-                              {/* Device Status */}
-                              <span
-                                className={`px-2 py-1 text-xs font-medium rounded-full ${status.color}`}
-                              >
-                                {status.text}
-                              </span>
-
-                              {/* Device Details */}
-                              {device.brightness !== undefined && (
-                                <span className="text-sm text-gray-500">
-                                  {device.brightness}%
-                                </span>
-                              )}
-
-                              {/* Device Toggle Switch */}
-                              {(device.type === "light" ||
-                                device.type === "outlet") &&
-                                device.isOn !== undefined &&
-                                device.isReachable && (
-                                  <div className="flex items-center space-x-2">
-                                    <span className="text-sm text-gray-500 capitalize">
-                                      {device.type}:
-                                    </span>
-                                    <button
-                                      onClick={() => handleDeviceToggle(device)}
-                                      disabled={togglingDevice === device.id}
-                                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 ${
-                                        device.isOn
-                                          ? "bg-blue-600"
-                                          : "bg-gray-200"
-                                      }`}
-                                    >
-                                      <span
-                                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                          device.isOn
-                                            ? "translate-x-6"
-                                            : "translate-x-1"
-                                        }`}
+                                        className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        autoFocus
+                                        onKeyPress={(e) => {
+                                          if (e.key === "Enter") {
+                                            handleEditSave(device.id);
+                                          } else if (e.key === "Escape") {
+                                            handleEditCancel();
+                                          }
+                                        }}
                                       />
-                                    </button>
-                                    {togglingDevice === device.id && (
-                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-                                    )}
-                                  </div>
+                                      <button
+                                        onClick={() =>
+                                          handleEditSave(device.id)
+                                        }
+                                        disabled={isUpdating || !newName.trim()}
+                                        className="px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 disabled:opacity-50"
+                                      >
+                                        {isUpdating ? "..." : "Save"}
+                                      </button>
+                                      <button
+                                        onClick={handleEditCancel}
+                                        disabled={isUpdating}
+                                        className="px-2 py-1 bg-gray-500 text-white text-xs rounded hover:bg-gray-600 disabled:opacity-50"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div>
+                                      <h3 className="text-lg font-medium text-gray-800">
+                                        {device.name}
+                                      </h3>
+                                      <div className="flex items-center space-x-2 mt-1">
+                                        <span className="text-sm text-gray-500 capitalize">
+                                          {device.type}
+                                        </span>
+                                        <span className="text-gray-300">•</span>
+                                        <span className="text-xs text-gray-400">
+                                          ID: {device.id}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center space-x-3">
+                                {/* Device Status */}
+                                <span
+                                  className={`px-2 py-1 text-xs font-medium rounded-full ${status.color}`}
+                                >
+                                  {status.text}
+                                </span>
+
+                                {/* Device Details */}
+                                {device.brightness !== undefined && (
+                                  <span className="text-sm text-gray-500">
+                                    {device.brightness}%
+                                  </span>
                                 )}
 
-                              {/* Edit Button */}
-                              {!isEditing && (
-                                <button
-                                  onClick={() => handleEditStart(device)}
-                                  disabled={isUpdating}
-                                  className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors disabled:opacity-50"
-                                >
-                                  Edit Name
-                                </button>
-                              )}
+                                {/* Device Toggle Switch */}
+                                {(device.type === "light" ||
+                                  device.type === "outlet") &&
+                                  device.isOn !== undefined &&
+                                  device.isReachable && (
+                                    <div className="flex items-center space-x-2">
+                                      <span className="text-sm text-gray-500 capitalize">
+                                        {device.type}:
+                                      </span>
+                                      <button
+                                        onClick={() =>
+                                          handleDeviceToggle(device)
+                                        }
+                                        disabled={togglingDevice === device.id}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 ${
+                                          device.isOn
+                                            ? "bg-blue-600"
+                                            : "bg-gray-200"
+                                        }`}
+                                      >
+                                        <span
+                                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                            device.isOn
+                                              ? "translate-x-6"
+                                              : "translate-x-1"
+                                          }`}
+                                        />
+                                      </button>
+                                      {togglingDevice === device.id && (
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                                      )}
+                                    </div>
+                                  )}
+
+                                {/* Edit Button */}
+                                {!isEditing && (
+                                  <button
+                                    onClick={() => handleEditStart(device)}
+                                    disabled={isUpdating}
+                                    className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors disabled:opacity-50"
+                                  >
+                                    Edit Name
+                                  </button>
+                                )}
+
+                                {/* Light Controls Button */}
+                                {device.type === "light" &&
+                                  device.isOn &&
+                                  device.isReachable && (
+                                    <button
+                                      onClick={() =>
+                                        setExpandedDevice(
+                                          expandedDevice === device.id
+                                            ? null
+                                            : device.id
+                                        )
+                                      }
+                                      className="px-3 py-1 text-sm text-green-600 hover:text-green-800 hover:bg-green-50 rounded transition-colors"
+                                    >
+                                      {expandedDevice === device.id
+                                        ? "Hide Controls"
+                                        : "Controls"}
+                                    </button>
+                                  )}
+                              </div>
                             </div>
                           </div>
-                        </div>
+
+                          {/* Expanded Light Controls */}
+                          {expandedDevice === device.id &&
+                            device.type === "light" &&
+                            device.isOn && (
+                              <div className="px-4 pb-4 bg-gray-50 border-t border-gray-200">
+                                <div className="mt-4 space-y-4">
+                                  {/* Brightness Control */}
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                      Brightness: {device.brightness || 50}%
+                                    </label>
+                                    <input
+                                      type="range"
+                                      min="1"
+                                      max="100"
+                                      value={device.brightness || 50}
+                                      onChange={(e) =>
+                                        handleBrightnessChange(
+                                          device,
+                                          parseInt(e.target.value)
+                                        )
+                                      }
+                                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                    />
+                                  </div>
+
+                                  {/* Color Controls */}
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Hue: {device.colorHue || 0}°
+                                      </label>
+                                      <input
+                                        type="range"
+                                        min="0"
+                                        max="360"
+                                        value={device.colorHue || 0}
+                                        onChange={(e) =>
+                                          handleColorChange(
+                                            device,
+                                            parseInt(e.target.value),
+                                            device.colorSaturation || 100
+                                          )
+                                        }
+                                        className="w-full h-2 rounded-lg appearance-none cursor-pointer"
+                                        style={{
+                                          background:
+                                            "linear-gradient(to right, hsl(0, 100%, 50%), hsl(60, 100%, 50%), hsl(120, 100%, 50%), hsl(180, 100%, 50%), hsl(240, 100%, 50%), hsl(300, 100%, 50%), hsl(360, 100%, 50%))",
+                                        }}
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Saturation:{" "}
+                                        {device.colorSaturation || 100}%
+                                      </label>
+                                      <input
+                                        type="range"
+                                        min="0"
+                                        max="100"
+                                        value={device.colorSaturation || 100}
+                                        onChange={(e) =>
+                                          handleColorChange(
+                                            device,
+                                            device.colorHue || 0,
+                                            parseInt(e.target.value)
+                                          )
+                                        }
+                                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {/* Color Preview */}
+                                  <div className="flex items-center space-x-2">
+                                    <span className="text-sm text-gray-600">
+                                      Color Preview:
+                                    </span>
+                                    <div
+                                      className="w-8 h-8 rounded-full border border-gray-300"
+                                      style={{
+                                        backgroundColor: `hsl(${
+                                          device.colorHue || 0
+                                        }, ${
+                                          device.colorSaturation || 100
+                                        }%, 50%)`,
+                                      }}
+                                    ></div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                        </React.Fragment>
                       );
                     })}
                   </div>

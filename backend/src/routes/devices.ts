@@ -196,7 +196,7 @@ export class DeviceController {
   async controlLight(req: Request, res: Response): Promise<void> {
     try {
       const { deviceId } = req.params;
-      const { isOn, brightness } = req.body;
+      const { isOn, brightness, colorHue, colorSaturation } = req.body;
 
       if (!deviceId) {
         res.status(400).json({
@@ -218,6 +218,8 @@ export class DeviceController {
         deviceId,
         isOn,
         brightness,
+        colorHue,
+        colorSaturation,
       });
 
       // Ensure connection to DIRIGERA hub
@@ -248,6 +250,8 @@ export class DeviceController {
         deviceType: device.type,
         isOn,
         brightness,
+        colorHue,
+        colorSaturation,
       });
 
       if (device.type !== "light" && device.type !== "outlet") {
@@ -262,7 +266,9 @@ export class DeviceController {
       const success = await tradfriController.controlLight(
         deviceId,
         isOn,
-        brightness
+        brightness,
+        colorHue,
+        colorSaturation
       );
 
       if (success) {
@@ -276,6 +282,8 @@ export class DeviceController {
             name: device.name,
             isOn: isOn,
             brightness: brightness,
+            colorHue: colorHue,
+            colorSaturation: colorSaturation,
           },
           timestamp: new Date().toISOString(),
         });
@@ -286,6 +294,8 @@ export class DeviceController {
           deviceType: device.type,
           isOn,
           brightness,
+          colorHue,
+          colorSaturation,
         });
       } else {
         res.status(500).json({

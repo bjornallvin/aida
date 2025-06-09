@@ -57,6 +57,9 @@ export interface LightControlResponse {
     name: string;
     isOn: boolean;
     brightness?: number;
+    colorHue?: number;
+    colorSaturation?: number;
+    colorTemperature?: number;
   };
   timestamp?: string;
   error?: string;
@@ -71,13 +74,16 @@ export interface TradfriDevice {
   isOn?: boolean;
   targetLevel?: number;
   currentLevel?: number;
+  colorHue?: number;
+  colorSaturation?: number;
+  colorTemperature?: number;
 }
 
 class ApiService {
   private baseUrl: string;
 
   constructor(
-    baseUrl: string = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+    baseUrl: string = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
   ) {
     this.baseUrl = baseUrl;
   }
@@ -255,12 +261,26 @@ class ApiService {
   async controlLight(
     deviceId: string,
     isOn: boolean,
-    brightness?: number
+    brightness?: number,
+    colorHue?: number,
+    colorSaturation?: number
   ): Promise<LightControlResponse> {
     try {
-      const body: { isOn: boolean; brightness?: number } = { isOn };
+      const body: {
+        isOn: boolean;
+        brightness?: number;
+        colorHue?: number;
+        colorSaturation?: number;
+      } = { isOn };
+
       if (brightness !== undefined) {
         body.brightness = brightness;
+      }
+      if (colorHue !== undefined) {
+        body.colorHue = colorHue;
+      }
+      if (colorSaturation !== undefined) {
+        body.colorSaturation = colorSaturation;
       }
 
       const response = await fetch(

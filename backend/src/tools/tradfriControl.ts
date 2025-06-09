@@ -30,6 +30,9 @@ export interface TradfriDevice {
   isOn?: boolean | undefined;
   targetLevel?: number | undefined;
   currentLevel?: number | undefined;
+  colorHue?: number | undefined;
+  colorSaturation?: number | undefined;
+  colorTemperature?: number | undefined;
 }
 
 export class TradfriController {
@@ -118,6 +121,9 @@ export class TradfriController {
       isOn: this.getDeviceOnState(device),
       targetLevel: this.getDeviceTargetLevel(device),
       currentLevel: this.getDeviceCurrentLevel(device),
+      colorHue: this.getDeviceColorHue(device),
+      colorSaturation: this.getDeviceColorSaturation(device),
+      colorTemperature: this.getDeviceColorTemperature(device),
     }));
 
     logger.info("Retrieved devices from DIRIGERA hub", {
@@ -167,10 +173,36 @@ export class TradfriController {
     return undefined;
   }
 
+  private getDeviceColorHue(device: Device): number | undefined {
+    if (device.type === "light") {
+      const light = device as Light;
+      return light.attributes.colorHue;
+    }
+    return undefined;
+  }
+
+  private getDeviceColorSaturation(device: Device): number | undefined {
+    if (device.type === "light") {
+      const light = device as Light;
+      return light.attributes.colorSaturation;
+    }
+    return undefined;
+  }
+
+  private getDeviceColorTemperature(device: Device): number | undefined {
+    if (device.type === "light") {
+      const light = device as Light;
+      return light.attributes.colorTemperature;
+    }
+    return undefined;
+  }
+
   async controlLight(
     deviceIdOrName: string,
     isOn: boolean,
-    brightness?: number
+    brightness?: number,
+    colorHue?: number,
+    colorSaturation?: number
   ): Promise<boolean> {
     if (!this.client) {
       throw new Error("Not connected to DIRIGERA hub");
@@ -182,13 +214,25 @@ export class TradfriController {
         deviceIdOrName.toLowerCase().includes("all lights") ||
         deviceIdOrName.toLowerCase() === "all"
       ) {
-        return await this.controlAllLights(isOn, brightness);
+        return await this.controlAllLights(
+          isOn,
+          brightness,
+          colorHue,
+          colorSaturation
+        );
       }
 
       // Check if this is a room-based command (try to find multiple devices)
       const roomDevices = await this.findDevicesByRoom(deviceIdOrName, "light");
       if (roomDevices.length > 1) {
-        return await this.controlMultipleLights(roomDevices, isOn, brightness);
+        return await this.controlMultipleLights(
+          roomDevices,
+          isOn,
+          brightness,
+          undefined,
+          colorHue,
+          colorSaturation
+        );
       }
 
       // Single device control (existing logic)
@@ -215,7 +259,10 @@ export class TradfriController {
           return await this.controlMultipleLights(
             matches.map((m) => m.device).filter((d) => d.type === "light"),
             isOn,
-            brightness
+            brightness,
+            undefined,
+            colorHue,
+            colorSaturation
           );
         }
 
@@ -244,6 +291,33 @@ export class TradfriController {
             lightLevel: validBrightness,
           });
         }
+
+        // Set color if provided and light is on
+        if (isOn && colorHue !== undefined && colorSaturation !== undefined) {
+          // Ensure color values are within valid range
+          const validHue = Math.max(0, Math.min(360, colorHue));
+          const validSaturation = Math.max(0, Math.min(100, colorSaturation));
+
+          // Try the DIRIGERA API with proper format
+          try {
+            await this.client.lights.setLightColor({
+              id: device.id,
+              colorHue: validHue,
+              colorSaturation: validSaturation / 100, // Convert percentage to 0-1 range
+            });
+          } catch (colorError) {
+            console.warn(
+              "Failed to set color with percentage format, trying direct format:",
+              colorError
+            );
+            // Fallback: try with percentage format if decimal doesn't work
+            await this.client.lights.setLightColor({
+              id: device.id,
+              colorHue: validHue,
+              colorSaturation: validSaturation,
+            });
+          }
+        }
       } else if (device.type === "outlet") {
         await this.client.outlets.setIsOn({ id: device.id, isOn });
       }
@@ -260,7 +334,9 @@ export class TradfriController {
     devices: Device[],
     isOn: boolean,
     brightness?: number,
-    excludeDevices?: string[]
+    excludeDevices?: string[],
+    colorHue?: number,
+    colorSaturation?: number
   ): Promise<boolean> {
     if (!this.client) {
       throw new Error("Not connected to DIRIGERA hub");
@@ -314,6 +390,31 @@ export class TradfriController {
             lightLevel: validBrightness,
           });
         }
+
+        // Set color if provided and light is on
+        if (isOn && colorHue !== undefined && colorSaturation !== undefined) {
+          const validHue = Math.max(0, Math.min(360, colorHue));
+          const validSaturation = Math.max(0, Math.min(100, colorSaturation));
+
+          try {
+            await this.client!.lights.setLightColor({
+              id: device.id,
+              colorHue: validHue,
+              colorSaturation: validSaturation / 100, // Convert percentage to 0-1 range
+            });
+          } catch (colorError) {
+            console.warn(
+              `Failed to set color for device ${device.id} with percentage format, trying direct format:`,
+              colorError
+            );
+            // Fallback: try with percentage format if decimal doesn't work
+            await this.client!.lights.setLightColor({
+              id: device.id,
+              colorHue: validHue,
+              colorSaturation: validSaturation,
+            });
+          }
+        }
       });
 
       await Promise.all(promises);
@@ -328,7 +429,9 @@ export class TradfriController {
   // Helper method to control all lights in the house
   private async controlAllLights(
     isOn: boolean,
-    brightness?: number
+    brightness?: number,
+    colorHue?: number,
+    colorSaturation?: number
   ): Promise<boolean> {
     if (!this.client) {
       throw new Error("Not connected to DIRIGERA hub");
@@ -342,7 +445,14 @@ export class TradfriController {
         throw new Error("No lights found in the system");
       }
 
-      return await this.controlMultipleLights(allLights, isOn, brightness);
+      return await this.controlMultipleLights(
+        allLights,
+        isOn,
+        brightness,
+        undefined,
+        colorHue,
+        colorSaturation
+      );
     } catch (error) {
       console.error("Failed to control all lights:", error);
       return false;
@@ -495,6 +605,9 @@ export class TradfriController {
       isOn: this.getDeviceOnState(device),
       targetLevel: this.getDeviceTargetLevel(device),
       currentLevel: this.getDeviceCurrentLevel(device),
+      colorHue: this.getDeviceColorHue(device),
+      colorSaturation: this.getDeviceColorSaturation(device),
+      colorTemperature: this.getDeviceColorTemperature(device),
     };
   }
 
@@ -642,6 +755,9 @@ export class TradfriController {
         isOn: this.getDeviceOnState(device),
         targetLevel: this.getDeviceTargetLevel(device),
         currentLevel: this.getDeviceCurrentLevel(device),
+        colorHue: this.getDeviceColorHue(device),
+        colorSaturation: this.getDeviceColorSaturation(device),
+        colorTemperature: this.getDeviceColorTemperature(device),
       };
     });
 
