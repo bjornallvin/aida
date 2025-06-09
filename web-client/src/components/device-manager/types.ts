@@ -44,7 +44,9 @@ export interface GlobalControlsProps {
   devices: TradfriDevice[];
   onToggleAll: (turnOn: boolean) => void;
   onSetGlobalBrightness: (brightness: number) => void;
-  onSetGlobalColor: (color: { r: number; g: number; b: number }) => void;
+  onSetGlobalHue: (hue: number) => void;
+  onSetGlobalSaturation: (saturation: number) => void;
+  onSetGlobalTemperature: (temperature: number) => void;
   onRefreshDevices: () => void;
   isLoading: boolean;
 }

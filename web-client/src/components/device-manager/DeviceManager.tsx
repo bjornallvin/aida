@@ -92,21 +92,27 @@ export const DeviceManager: React.FC = () => {
     }
   };
 
-  const setGlobalBrightness = (brightness: number) => {
-    // Use first light device as proxy for global operation
-    const lightDevice = devices.find((d) => d.type === "light");
-    if (lightDevice) {
-      return colorControls.handleBrightnessChange(lightDevice, brightness);
+  const setGlobalBrightness = async (brightness: number) => {
+    // Get all reachable light devices and control them all
+    const lightDevices = devices.filter(
+      (d) => d.type === "light" && d.isReachable
+    );
+    if (lightDevices.length > 0) {
+      await Promise.all(
+        lightDevices.map(device => colorControls.handleBrightnessChange(device, brightness))
+      );
     }
   };
 
-  const setRoomBrightness = (roomName: string, brightness: number) => {
-    // Find first light in room and use as proxy
-    const roomDevice = devices.find(
-      (d) => d.name.startsWith(roomName) && d.type === "light"
+  const setRoomBrightness = async (roomName: string, brightness: number) => {
+    // Get all reachable lights in the room and control them all
+    const roomDevices = devices.filter(
+      (d) => d.name.startsWith(roomName) && d.type === "light" && d.isReachable
     );
-    if (roomDevice) {
-      return colorControls.handleBrightnessChange(roomDevice, brightness);
+    if (roomDevices.length > 0) {
+      await Promise.all(
+        roomDevices.map(device => colorControls.handleBrightnessChange(device, brightness))
+      );
     }
   };
 
@@ -131,24 +137,7 @@ export const DeviceManager: React.FC = () => {
     }
   };
 
-  const setGlobalColor = (color: { r: number; g: number; b: number }) => {
-    // Convert RGB to hue/saturation using proper conversion
-    const { hue, saturation } = rgbToHueSaturation(color);
-    console.log(
-      "Setting global color:",
-      color,
-      "converted to hue:",
-      hue,
-      "saturation:",
-      saturation
-    ); // For debugging
-    const lightDevice = devices.find((d) => d.type === "light");
-    if (lightDevice) {
-      return colorControls.handleColorHueChange(lightDevice, hue);
-    }
-  };
-
-  const setRoomColor = (
+  const setRoomColor = async (
     roomName: string,
     color: { r: number; g: number; b: number }
   ) => {
@@ -163,11 +152,15 @@ export const DeviceManager: React.FC = () => {
       "saturation:",
       saturation
     ); // For debugging
-    const roomDevice = devices.find(
-      (d) => d.name.startsWith(roomName) && d.type === "light"
+    
+    // Get all reachable lights in the room and control them all
+    const roomDevices = devices.filter(
+      (d) => d.name.startsWith(roomName) && d.type === "light" && d.isReachable
     );
-    if (roomDevice) {
-      return colorControls.handleColorHueChange(roomDevice, hue);
+    if (roomDevices.length > 0) {
+      await Promise.all(
+        roomDevices.map(device => colorControls.handleColorHueChange(device, hue))
+      );
     }
   };
 
@@ -232,6 +225,40 @@ export const DeviceManager: React.FC = () => {
     }
   };
 
+  // Global control functions that affect all lights
+  const setGlobalHue = async (hue: number) => {
+    const lightDevices = devices.filter(
+      (d) => d.type === "light" && d.isReachable
+    );
+    if (lightDevices.length > 0) {
+      await Promise.all(
+        lightDevices.map(device => colorControls.handleColorHueChange(device, hue))
+      );
+    }
+  };
+
+  const setGlobalSaturation = async (saturation: number) => {
+    const lightDevices = devices.filter(
+      (d) => d.type === "light" && d.isReachable
+    );
+    if (lightDevices.length > 0) {
+      await Promise.all(
+        lightDevices.map(device => colorControls.handleColorSaturationChange(device, saturation))
+      );
+    }
+  };
+
+  const setGlobalTemperature = async (temperature: number) => {
+    const lightDevices = devices.filter(
+      (d) => d.type === "light" && d.isReachable
+    );
+    if (lightDevices.length > 0) {
+      await Promise.all(
+        lightDevices.map(device => colorControls.handleColorTemperatureChange(device, temperature))
+      );
+    }
+  };
+
   if (error) {
     return (
       <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "2rem" }}>
@@ -279,7 +306,9 @@ export const DeviceManager: React.FC = () => {
           devices={devices}
           onToggleAll={toggleAllDevices}
           onSetGlobalBrightness={setGlobalBrightness}
-          onSetGlobalColor={setGlobalColor}
+          onSetGlobalHue={setGlobalHue}
+          onSetGlobalSaturation={setGlobalSaturation}
+          onSetGlobalTemperature={setGlobalTemperature}
           onRefreshDevices={refreshDevices}
           isLoading={isLoading}
         />

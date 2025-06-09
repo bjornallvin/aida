@@ -5,7 +5,9 @@ export const GlobalControls: React.FC<GlobalControlsProps> = ({
   devices,
   onToggleAll,
   onSetGlobalBrightness,
-  onSetGlobalColor,
+  onSetGlobalHue,
+  onSetGlobalSaturation,
+  onSetGlobalTemperature,
   onRefreshDevices,
   isLoading,
 }) => {
@@ -77,51 +79,186 @@ export const GlobalControls: React.FC<GlobalControlsProps> = ({
       {someOn && (
         <div
           style={{
-            display: "flex",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
             gap: "1.5rem",
-            alignItems: "center",
-            flexWrap: "wrap",
+            marginTop: "1rem",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              minWidth: "200px",
-            }}
-          >
-            <span style={{ minWidth: "80px" }}>Global Brightness:</span>
+          {/* Global Brightness Control */}
+          <div>
+            <label
+              style={{
+                display: "block",
+                fontSize: "0.9rem",
+                fontWeight: "500",
+                color: "#555",
+                marginBottom: "0.5rem",
+              }}
+            >
+              Global Brightness
+            </label>
             <input
               type="range"
               min="1"
               max="254"
               defaultValue="127"
               onChange={(e) => onSetGlobalBrightness(parseInt(e.target.value))}
-              style={{ flex: 1 }}
+              style={{
+                width: "100%",
+                height: "8px",
+                borderRadius: "4px",
+                background: "linear-gradient(to right, #000000 0%, #ffffff 100%)",
+                outline: "none",
+                cursor: "pointer",
+                WebkitAppearance: "none",
+                appearance: "none",
+              }}
             />
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <span>Global Color:</span>
-            <input
-              type="color"
-              onChange={(e) => {
-                // Convert hex to RGB
-                const hex = e.target.value;
-                const r = parseInt(hex.slice(1, 3), 16);
-                const g = parseInt(hex.slice(3, 5), 16);
-                const b = parseInt(hex.slice(5, 7), 16);
-                onSetGlobalColor({ r, g, b });
-              }}
+          {/* Global Hue Control */}
+          <div>
+            <label
               style={{
-                width: "50px",
-                height: "35px",
-                border: "none",
+                display: "block",
+                fontSize: "0.9rem",
+                fontWeight: "500",
+                color: "#555",
+                marginBottom: "0.5rem",
+              }}
+            >
+              Global Hue
+            </label>
+            <div style={{ position: "relative" }}>
+              <input
+                type="range"
+                min="0"
+                max="360"
+                defaultValue="180"
+                onChange={(e) => {
+                  const hue = parseInt(e.target.value);
+                  onSetGlobalHue(hue);
+                }}
+                className="global-hue-slider"
+                style={{
+                  width: "100%",
+                  height: "12px",
+                  borderRadius: "6px",
+                  background:
+                    "linear-gradient(to right, #ff0000 0%, #ffff00 16.67%, #00ff00 33.33%, #00ffff 50%, #0000ff 66.67%, #ff00ff 83.33%, #ff0000 100%)",
+                  outline: "none",
+                  cursor: "pointer",
+                  WebkitAppearance: "none",
+                  appearance: "none",
+                }}
+              />
+              <style
+                dangerouslySetInnerHTML={{
+                  __html: `
+                  .global-hue-slider::-webkit-slider-thumb {
+                    -webkit-appearance: none;
+                    appearance: none;
+                    width: 16px;
+                    height: 16px;
+                    border-radius: 50%;
+                    background: #ffffff;
+                    border: 2px solid #333;
+                    cursor: pointer;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                  }
+                  .global-hue-slider::-moz-range-thumb {
+                    width: 16px;
+                    height: 16px;
+                    border-radius: 50%;
+                    background: #ffffff;
+                    border: 2px solid #333;
+                    cursor: pointer;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                    border: none;
+                  }
+                `,
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Global Saturation Control */}
+          <div>
+            <label
+              style={{
+                display: "block",
+                fontSize: "0.9rem",
+                fontWeight: "500",
+                color: "#555",
+                marginBottom: "0.5rem",
+              }}
+            >
+              Global Saturation
+            </label>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              defaultValue="50"
+              onChange={(e) => onSetGlobalSaturation(parseInt(e.target.value))}
+              style={{
+                width: "100%",
+                height: "8px",
                 borderRadius: "4px",
+                background:
+                  "linear-gradient(to right, #ffffff 0%, #ff0000 100%)",
+                outline: "none",
                 cursor: "pointer",
+                WebkitAppearance: "none",
+                appearance: "none",
               }}
             />
+          </div>
+
+          {/* Global Temperature Control */}
+          <div>
+            <label
+              style={{
+                display: "block",
+                fontSize: "0.9rem",
+                fontWeight: "500",
+                color: "#555",
+                marginBottom: "0.5rem",
+              }}
+            >
+              Global Temperature
+            </label>
+            <input
+              type="range"
+              min="2000"
+              max="6500"
+              defaultValue="4000"
+              onChange={(e) => onSetGlobalTemperature(parseInt(e.target.value))}
+              style={{
+                width: "100%",
+                height: "8px",
+                borderRadius: "4px",
+                background:
+                  "linear-gradient(to right, #ffa500 0%, #ffffff 50%, #87ceeb 100%)",
+                outline: "none",
+                cursor: "pointer",
+                WebkitAppearance: "none",
+                appearance: "none",
+              }}
+            />
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontSize: "0.75rem",
+                color: "#666",
+                marginTop: "0.5rem",
+              }}
+            >
+              <span>Warm (2000K)</span>
+              <span>Cool (6500K)</span>
+            </div>
           </div>
         </div>
       )}
