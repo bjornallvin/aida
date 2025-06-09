@@ -4,6 +4,7 @@ import { MusicController } from "./music";
 import { TTSController } from "./tts";
 import { AIController } from "./ai";
 import { DeviceController } from "./devices";
+import { SonosController } from "./sonos";
 import { uploadConfig } from "../config";
 import { validateRequired } from "../middleware";
 
@@ -19,6 +20,7 @@ export function createRoutes(): Router {
   const ttsController = new TTSController();
   const aiController = new AIController();
   const deviceController = new DeviceController();
+  const sonosController = new SonosController();
 
   // Health check route
   router.get("/health", HealthController.getHealth);
@@ -106,6 +108,51 @@ export function createRoutes(): Router {
       req.body.deviceId = req.params.deviceId;
       deviceController.controlLight(req, res);
     }
+  );
+
+  // Sonos control routes
+  router.get("/sonos/devices", sonosController.getDevices.bind(sonosController));
+  
+  router.post("/sonos/devices/refresh", sonosController.refreshDevices.bind(sonosController));
+
+  router.post(
+    "/sonos/play",
+    validateRequired(["room"]),
+    sonosController.play.bind(sonosController)
+  );
+
+  router.post(
+    "/sonos/pause",
+    validateRequired(["room"]),
+    sonosController.pause.bind(sonosController)
+  );
+
+  router.post(
+    "/sonos/stop",
+    validateRequired(["room"]),
+    sonosController.stop.bind(sonosController)
+  );
+
+  router.post(
+    "/sonos/volume",
+    validateRequired(["room", "volume"]),
+    sonosController.setVolume.bind(sonosController)
+  );
+
+  router.get("/sonos/:room/volume", sonosController.getVolume.bind(sonosController));
+
+  router.get("/sonos/:room/state", sonosController.getState.bind(sonosController));
+
+  router.post(
+    "/sonos/group",
+    validateRequired(["deviceRoom", "targetRoom"]),
+    sonosController.joinGroup.bind(sonosController)
+  );
+
+  router.post(
+    "/sonos/ungroup",
+    validateRequired(["room"]),
+    sonosController.leaveGroup.bind(sonosController)
   );
 
   return router;

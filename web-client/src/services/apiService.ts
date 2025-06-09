@@ -49,6 +49,85 @@ export interface DeviceUpdateResponse {
   error?: string;
 }
 
+export interface SonosDevice {
+  host: string;
+  port: number;
+  uuid: string;
+  model: string;
+  roomName: string;
+  zoneDisplayName: string;
+}
+
+export interface SonosTrack {
+  title: string;
+  artist: string;
+  album: string;
+  uri: string;
+  duration: number;
+  position: number;
+}
+
+export interface SonosPlaybackState {
+  isPlaying: boolean;
+  volume: number;
+  muted: boolean;
+  currentTrack?: SonosTrack;
+  playMode: string;
+  playbackState: string;
+}
+
+export interface SonosDevicesResponse {
+  success: boolean;
+  data?: {
+    devices: SonosDevice[];
+  };
+  error?: string;
+  details?: string;
+  timestamp: string;
+}
+
+export interface SonosPlayRequest {
+  room: string;
+  type?: "spotify" | "radio" | "queue";
+  query?: string;
+  uri?: string;
+}
+
+export interface SonosPlayResponse {
+  success: boolean;
+  data?: {
+    room: string;
+    type: string;
+    success: boolean;
+    message: string;
+  };
+  error?: string;
+  details?: string;
+  timestamp: string;
+}
+
+export interface SonosVolumeResponse {
+  success: boolean;
+  data?: {
+    room: string;
+    volume: number;
+  };
+  error?: string;
+  details?: string;
+  timestamp: string;
+}
+
+export interface SonosStateResponse {
+  success: boolean;
+  data?: {
+    room: string;
+    state: SonosPlaybackState;
+  };
+  error?: string;
+  details?: string;
+  timestamp: string;
+}
+
 export interface LightControlResponse {
   success: boolean;
   message?: string;
@@ -363,6 +442,178 @@ class ApiService {
       return await response.json();
     } catch (error) {
       console.error("Control light temperature failed:", error);
+      throw error;
+    }
+  }
+
+  // Sonos API methods
+  async getSonosDevices(): Promise<SonosDevicesResponse> {
+    try {
+      const response = await fetch(`${this.baseUrl}/sonos/devices`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Get Sonos devices failed:", error);
+      throw error;
+    }
+  }
+
+  async playSonos(playRequest: SonosPlayRequest): Promise<SonosPlayResponse> {
+    try {
+      const response = await fetch(`${this.baseUrl}/sonos/play`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(playRequest),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Play Sonos failed:", error);
+      throw error;
+    }
+  }
+
+  async pauseSonos(room: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const response = await fetch(`${this.baseUrl}/sonos/pause`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ room }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Pause Sonos failed:", error);
+      throw error;
+    }
+  }
+
+  async stopSonos(room: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const response = await fetch(`${this.baseUrl}/sonos/stop`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ room }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Stop Sonos failed:", error);
+      throw error;
+    }
+  }
+
+  async setSonosVolume(room: string, volume: number): Promise<SonosVolumeResponse> {
+    try {
+      const response = await fetch(`${this.baseUrl}/sonos/volume`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ room, volume }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Set Sonos volume failed:", error);
+      throw error;
+    }
+  }
+
+  async getSonosVolume(room: string): Promise<SonosVolumeResponse> {
+    try {
+      const response = await fetch(`${this.baseUrl}/sonos/${encodeURIComponent(room)}/volume`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Get Sonos volume failed:", error);
+      throw error;
+    }
+  }
+
+  async getSonosState(room: string): Promise<SonosStateResponse> {
+    try {
+      const response = await fetch(`${this.baseUrl}/sonos/${encodeURIComponent(room)}/state`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Get Sonos state failed:", error);
+      throw error;
+    }
+  }
+
+  async groupSonos(rooms: string[]): Promise<{ success: boolean; error?: string }> {
+    try {
+      const response = await fetch(`${this.baseUrl}/sonos/group`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ rooms }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Group Sonos failed:", error);
+      throw error;
+    }
+  }
+
+  async ungroupSonos(room: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const response = await fetch(`${this.baseUrl}/sonos/ungroup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ room }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Ungroup Sonos failed:", error);
       throw error;
     }
   }
