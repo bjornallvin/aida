@@ -99,7 +99,9 @@ export const DeviceManager: React.FC = () => {
     );
     if (lightDevices.length > 0) {
       await Promise.all(
-        lightDevices.map(device => colorControls.handleBrightnessChange(device, brightness))
+        lightDevices.map((device) =>
+          colorControls.handleBrightnessChange(device, brightness)
+        )
       );
     }
   };
@@ -111,7 +113,9 @@ export const DeviceManager: React.FC = () => {
     );
     if (roomDevices.length > 0) {
       await Promise.all(
-        roomDevices.map(device => colorControls.handleBrightnessChange(device, brightness))
+        roomDevices.map((device) =>
+          colorControls.handleBrightnessChange(device, brightness)
+        )
       );
     }
   };
@@ -152,14 +156,16 @@ export const DeviceManager: React.FC = () => {
       "saturation:",
       saturation
     ); // For debugging
-    
+
     // Get all reachable lights in the room and control them all
     const roomDevices = devices.filter(
       (d) => d.name.startsWith(roomName) && d.type === "light" && d.isReachable
     );
     if (roomDevices.length > 0) {
       await Promise.all(
-        roomDevices.map(device => colorControls.handleColorHueChange(device, hue))
+        roomDevices.map((device) =>
+          colorControls.handleColorHueChange(device, hue)
+        )
       );
     }
   };
@@ -232,7 +238,9 @@ export const DeviceManager: React.FC = () => {
     );
     if (lightDevices.length > 0) {
       await Promise.all(
-        lightDevices.map(device => colorControls.handleColorHueChange(device, hue))
+        lightDevices.map((device) =>
+          colorControls.handleColorHueChange(device, hue)
+        )
       );
     }
   };
@@ -243,7 +251,9 @@ export const DeviceManager: React.FC = () => {
     );
     if (lightDevices.length > 0) {
       await Promise.all(
-        lightDevices.map(device => colorControls.handleColorSaturationChange(device, saturation))
+        lightDevices.map((device) =>
+          colorControls.handleColorSaturationChange(device, saturation)
+        )
       );
     }
   };
@@ -254,7 +264,9 @@ export const DeviceManager: React.FC = () => {
     );
     if (lightDevices.length > 0) {
       await Promise.all(
-        lightDevices.map(device => colorControls.handleColorTemperatureChange(device, temperature))
+        lightDevices.map((device) =>
+          colorControls.handleColorTemperatureChange(device, temperature)
+        )
       );
     }
   };

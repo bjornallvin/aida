@@ -108,7 +108,8 @@ export const GlobalControls: React.FC<GlobalControlsProps> = ({
                 width: "100%",
                 height: "8px",
                 borderRadius: "4px",
-                background: "linear-gradient(to right, #000000 0%, #ffffff 100%)",
+                background:
+                  "linear-gradient(to right, #000000 0%, #ffffff 100%)",
                 outline: "none",
                 cursor: "pointer",
                 WebkitAppearance: "none",
