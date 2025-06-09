@@ -37,7 +37,7 @@ export default function DevicesPage() {
         </nav>
 
         {/* Device Manager Component */}
-        <DeviceManager className="max-w-full" />
+        <DeviceManager />
 
         {/* Footer */}
         <footer className="mt-12 text-center text-gray-500 text-sm">
