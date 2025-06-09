@@ -1,11 +1,7 @@
 /**
  * Main TRADFRI controller class
  */
-import {
-  createDirigeraClient,
-  DirigeraClient,
-  Device,
-} from "dirigera";
+import { createDirigeraClient, DirigeraClient, Device } from "dirigera";
 import { logger } from "../../utils";
 import { TradfriConfig, TradfriDevice } from "./types";
 import {
@@ -36,7 +32,7 @@ export class TradfriController {
       accessToken:
         config.accessToken || process.env.DIRIGERA_ACCESS_TOKEN || undefined,
     };
-    
+
     this.deviceResolver = new DeviceResolver(this.devices);
   }
 
@@ -52,8 +48,14 @@ export class TradfriController {
       });
 
       // Initialize controllers with the client
-      this.lightController = new LightController(this.client, this.deviceResolver);
-      this.deviceControllers = new DeviceControllers(this.client, this.deviceResolver);
+      this.lightController = new LightController(
+        this.client,
+        this.deviceResolver
+      );
+      this.deviceControllers = new DeviceControllers(
+        this.client,
+        this.deviceResolver
+      );
 
       // Load all devices
       await this.loadDevices();
