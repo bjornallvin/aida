@@ -117,6 +117,7 @@ export interface AppConfig {
   maxFileSize: number;
   maxTextLength: number;
   environment: "development" | "production" | "test";
+  baseUrl?: string;
 }
 
 export interface LogData {

@@ -5,6 +5,7 @@ import { TTSController } from "./tts";
 import { AIController } from "./ai";
 import { DeviceController } from "./devices";
 import { SonosController } from "./sonos";
+import ttsSonosRoutes from "./tts-sonos";
 import { uploadConfig } from "../config";
 import { validateRequired } from "../middleware";
 
@@ -166,6 +167,9 @@ export function createRoutes(): Router {
     validateRequired(["room"]),
     sonosController.leaveGroup.bind(sonosController)
   );
+
+  // TTS + Sonos combined routes
+  router.use("/tts-sonos", ttsSonosRoutes);
 
   return router;
 }

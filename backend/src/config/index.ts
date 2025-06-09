@@ -34,12 +34,16 @@ export class ConfigManager {
     const audioDir =
       process.env.TTS_OUTPUT_DIR || path.join(process.cwd(), "audio");
 
+    const port = parseInt(process.env.PORT || "3000", 10);
+    const baseUrl = process.env.BASE_URL || `http://localhost:${port}`;
+
     return {
-      port: parseInt(process.env.PORT || "3000", 10),
+      port,
       mopidyUrl: process.env.MOPIDY_URL || "http://localhost:6680",
       openaiApiKey: process.env.OPENAI_API_KEY || "",
       elevenlabsApiKey: process.env.ELEVENLABS_API_KEY || "",
       audioDir,
+      baseUrl,
       maxFileSize: 25 * 1024 * 1024, // 25MB
       maxTextLength: 5000,
       environment:

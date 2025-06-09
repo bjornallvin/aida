@@ -56,6 +56,21 @@ export class SonosService {
   }
 
   /**
+   * Rediscover devices after network change
+   */
+  public async rediscoverDevices(): Promise<SonosDevice[]> {
+    try {
+      logger.info("Rediscovering Sonos devices after network change");
+      return await this.sonosClient.rediscoverDevices();
+    } catch (error) {
+      logger.error("Failed to rediscover Sonos devices", {
+        error: (error as Error).message,
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Handle Sonos play requests
    */
   public async playMusic(
@@ -215,6 +230,52 @@ export class SonosService {
     } catch (error) {
       logger.error("Failed to remove Sonos device from group", {
         room,
+        error: (error as Error).message,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Play audio from URL on Sonos (for TTS integration)
+   */
+  public async playAudioFromUrl(
+    roomName: string,
+    audioUrl: string
+  ): Promise<void> {
+    try {
+      await this.sonosClient.playAudioFromUrl(roomName, audioUrl);
+      logger.info("Sonos audio from URL started", { roomName, audioUrl });
+    } catch (error) {
+      logger.error("Failed to play audio from URL on Sonos", {
+        roomName,
+        audioUrl,
+        error: (error as Error).message,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Play temporary audio on Sonos with optional resume (for TTS integration)
+   */
+  public async playTempAudio(
+    roomName: string,
+    audioUrl: string,
+    resumeAfter: boolean = true
+  ): Promise<void> {
+    try {
+      await this.sonosClient.playTempAudio(roomName, audioUrl, resumeAfter);
+      logger.info("Sonos temporary audio started", {
+        roomName,
+        audioUrl,
+        resumeAfter,
+      });
+    } catch (error) {
+      logger.error("Failed to play temporary audio on Sonos", {
+        roomName,
+        audioUrl,
+        resumeAfter,
         error: (error as Error).message,
       });
       throw error;

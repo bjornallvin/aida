@@ -58,6 +58,20 @@ export class SonosClient {
   }
 
   /**
+   * Manually retry device discovery (useful after network changes)
+   */
+  public async rediscoverDevices(): Promise<SonosDevice[]> {
+    logger.info("Manually rediscovering Sonos devices after network change");
+    this.devices.clear();
+    this.discoveredDevices = [];
+
+    // Create new discovery instance to reset state
+    this.discovery = new DeviceDiscovery();
+
+    return await this.discoverDevices();
+  }
+
+  /**
    * Discover Sonos devices on the network
    */
   public async discoverDevices(): Promise<SonosDevice[]> {
@@ -410,6 +424,93 @@ export class SonosClient {
     } catch (error) {
       logger.error("Failed to leave group", {
         roomName,
+        error: (error as Error).message,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Play audio from URL on a specific device
+   */
+  public async playAudioFromUrl(
+    roomName: string,
+    audioUrl: string
+  ): Promise<void> {
+    const device = this.getDeviceByRoom(roomName);
+    if (!device) {
+      throw new Error(`Sonos device not found for room: ${roomName}`);
+    }
+
+    try {
+      // Clear the queue first to ensure immediate playback
+      await device.flush();
+
+      // Queue the audio URL and play
+      await device.queue(audioUrl);
+      await device.play();
+
+      logger.info("Sonos playing audio from URL", { roomName, audioUrl });
+    } catch (error) {
+      logger.error("Failed to play audio from URL", {
+        roomName,
+        audioUrl,
+        error: (error as Error).message,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Play a temporary audio file (like TTS) on a specific device
+   * This method is optimized for short audio clips and temporary files
+   */
+  public async playTempAudio(
+    roomName: string,
+    audioUrl: string,
+    resumeAfter: boolean = true
+  ): Promise<void> {
+    const device = this.getDeviceByRoom(roomName);
+    if (!device) {
+      throw new Error(`Sonos device not found for room: ${roomName}`);
+    }
+
+    try {
+      let previousState: any = null;
+
+      // Store current playback state if we need to resume
+      if (resumeAfter) {
+        try {
+          previousState = await device.getCurrentState();
+          logger.info("Stored previous playback state", {
+            roomName,
+            state: previousState,
+          });
+        } catch (error) {
+          logger.warning("Could not get previous state", {
+            roomName,
+            error: (error as Error).message,
+          });
+        }
+      }
+
+      // Stop current playback and clear queue
+      await device.stop();
+      await device.flush();
+
+      // Play the temporary audio
+      await device.queue(audioUrl);
+      await device.play();
+
+      logger.info("Sonos playing temporary audio", { roomName, audioUrl });
+
+      // Note: For full implementation, you might want to add a listener
+      // to detect when the audio finishes and resume previous playback
+      // This would require more complex state management
+    } catch (error) {
+      logger.error("Failed to play temporary audio", {
+        roomName,
+        audioUrl,
         error: (error as Error).message,
       });
       throw error;
