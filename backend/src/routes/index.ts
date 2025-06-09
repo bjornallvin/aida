@@ -111,9 +111,15 @@ export function createRoutes(): Router {
   );
 
   // Sonos control routes
-  router.get("/sonos/devices", sonosController.getDevices.bind(sonosController));
-  
-  router.post("/sonos/devices/refresh", sonosController.refreshDevices.bind(sonosController));
+  router.get(
+    "/sonos/devices",
+    sonosController.getDevices.bind(sonosController)
+  );
+
+  router.post(
+    "/sonos/devices/refresh",
+    sonosController.refreshDevices.bind(sonosController)
+  );
 
   router.post(
     "/sonos/play",
@@ -139,9 +145,15 @@ export function createRoutes(): Router {
     sonosController.setVolume.bind(sonosController)
   );
 
-  router.get("/sonos/:room/volume", sonosController.getVolume.bind(sonosController));
+  router.get(
+    "/sonos/:room/volume",
+    sonosController.getVolume.bind(sonosController)
+  );
 
-  router.get("/sonos/:room/state", sonosController.getState.bind(sonosController));
+  router.get(
+    "/sonos/:room/state",
+    sonosController.getState.bind(sonosController)
+  );
 
   router.post(
     "/sonos/group",

@@ -58,7 +58,9 @@ export class SonosService {
   /**
    * Handle Sonos play requests
    */
-  public async playMusic(request: SonosPlayRequest): Promise<SonosPlayResponse> {
+  public async playMusic(
+    request: SonosPlayRequest
+  ): Promise<SonosPlayResponse> {
     const { room, type = "queue", query, uri } = request;
 
     logger.info("Processing Sonos play request", {
@@ -186,7 +188,10 @@ export class SonosService {
   /**
    * Join devices into a group for multi-room audio
    */
-  public async joinGroup(deviceRoom: string, targetRoom: string): Promise<void> {
+  public async joinGroup(
+    deviceRoom: string,
+    targetRoom: string
+  ): Promise<void> {
     try {
       await this.sonosClient.joinGroup(deviceRoom, targetRoom);
       logger.info("Sonos devices grouped", { deviceRoom, targetRoom });

@@ -13,7 +13,9 @@ export default function SonosPage() {
           <h1 className="text-4xl font-bold text-gray-800 mb-2">
             Sonos Control Center
           </h1>
-          <p className="text-gray-600">Control your Sonos speakers wirelessly</p>
+          <p className="text-gray-600">
+            Control your Sonos speakers wirelessly
+          </p>
         </header>
 
         {/* Navigation */}

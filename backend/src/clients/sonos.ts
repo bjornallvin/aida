@@ -66,48 +66,56 @@ export class SonosClient {
 
       const timeout = setTimeout(() => {
         this.discoveredDevices = foundDevices;
-        
+
         // Initialize Sonos instances for each device
-        foundDevices.forEach(device => {
+        foundDevices.forEach((device) => {
           const sonos = new Sonos(device.host);
           this.devices.set(device.uuid, sonos);
         });
 
-        logger.info("Sonos device discovery completed", { 
+        logger.info("Sonos device discovery completed", {
           deviceCount: foundDevices.length,
-          devices: foundDevices.map(d => ({ roomName: d.roomName, model: d.model }))
+          devices: foundDevices.map((d) => ({
+            roomName: d.roomName,
+            model: d.model,
+          })),
         });
-        
+
         resolve(foundDevices);
       }, this.discoveryTimeout);
 
-      this.discovery.on('DeviceAvailable', async (device: any) => {
+      this.discovery.on("DeviceAvailable", async (device: any) => {
         logger.info("Sonos device discovered", {
           host: device.host,
           port: device.port,
           uuid: device.uuid,
           model: device.model,
           roomName: device.roomName,
-          name: device.name
+          name: device.name,
         });
 
         try {
           // Create Sonos instance to get device info
           const sonos = new Sonos(device.host);
-          
+
           // Try to get room name from the device
           let roomName = device.roomName || device.name;
           if (!roomName) {
             try {
               // Try to get device description
               const zoneAttrs = await sonos.getZoneAttributes();
-              roomName = zoneAttrs.CurrentZoneName || `Sonos-${device.host.split('.').pop()}`;
+              roomName =
+                zoneAttrs.CurrentZoneName ||
+                `Sonos-${device.host.split(".").pop()}`;
               logger.info("Got room name from zone attributes", { roomName });
             } catch (error) {
-              logger.error("Could not get zone attributes, using fallback room name", {
-                error: (error as Error).message
-              });
-              roomName = `Sonos-${device.host.split('.').pop()}`;
+              logger.error(
+                "Could not get zone attributes, using fallback room name",
+                {
+                  error: (error as Error).message,
+                }
+              );
+              roomName = `Sonos-${device.host.split(".").pop()}`;
             }
           }
 
@@ -130,11 +138,11 @@ export class SonosClient {
         } catch (error) {
           logger.error("Failed to process device", {
             host: device.host,
-            error: (error as Error).message
+            error: (error as Error).message,
           });
 
           // Fallback device with generated room name
-          const fallbackRoomName = `Sonos-${device.host.split('.').pop()}`;
+          const fallbackRoomName = `Sonos-${device.host.split(".").pop()}`;
           const fallbackDevice: SonosDevice = {
             host: device.host,
             port: device.port || 1400,
@@ -148,7 +156,7 @@ export class SonosClient {
         }
       });
 
-      this.discovery.on('error', (error: Error) => {
+      this.discovery.on("error", (error: Error) => {
         clearTimeout(timeout);
         logger.error("Sonos device discovery error", { error: error.message });
         reject(error);
@@ -171,7 +179,7 @@ export class SonosClient {
    */
   public getDeviceByRoom(roomName: string): Sonos | null {
     const device = this.discoveredDevices.find(
-      d => d.roomName.toLowerCase() === roomName.toLowerCase()
+      (d) => d.roomName.toLowerCase() === roomName.toLowerCase()
     );
     return device ? this.devices.get(device.uuid) || null : null;
   }
@@ -197,7 +205,7 @@ export class SonosClient {
         // Queue the URI first, then play
         await device.queue(uri);
       }
-      
+
       await device.play();
       logger.info("Sonos playback started", { roomName, uri });
     } catch (error) {
@@ -283,31 +291,35 @@ export class SonosClient {
       ]);
 
       let track: SonosTrack | undefined;
-      if (currentTrack.status === 'fulfilled' && currentTrack.value) {
+      if (currentTrack.status === "fulfilled" && currentTrack.value) {
         const trackData = currentTrack.value;
         track = {
           title: trackData.title || "Unknown",
           artist: trackData.artist || "Unknown",
-          album: trackData.album || "Unknown", 
+          album: trackData.album || "Unknown",
           uri: trackData.uri || "",
           duration: parseInt(trackData.duration || "0") || 0,
           position: parseInt(trackData.position || "0") || 0,
         };
       }
 
-      const playbackState = state.status === 'fulfilled' ? state.value : 'STOPPED';
-      const deviceVolume = volume.status === 'fulfilled' ? volume.value : 0;
-      const deviceMuted = muted.status === 'fulfilled' ? muted.value : false;
+      const playbackState =
+        state.status === "fulfilled" ? state.value : "STOPPED";
+      const deviceVolume = volume.status === "fulfilled" ? volume.value : 0;
+      const deviceMuted = muted.status === "fulfilled" ? muted.value : false;
 
-      let playMode = 'NORMAL';
+      let playMode = "NORMAL";
       try {
         playMode = await device.getPlayMode();
       } catch (error) {
-        logger.info("Could not get play mode", { roomName, error: (error as Error).message });
+        logger.info("Could not get play mode", {
+          roomName,
+          error: (error as Error).message,
+        });
       }
 
       return {
-        isPlaying: playbackState === 'PLAYING',
+        isPlaying: playbackState === "PLAYING",
         volume: deviceVolume,
         muted: deviceMuted,
         currentTrack: track,
@@ -317,7 +329,7 @@ export class SonosClient {
     } catch (error) {
       logger.error("Failed to get playback state", {
         roomName,
-        error: (error as Error).message
+        error: (error as Error).message,
       });
       throw error;
     }
@@ -326,7 +338,10 @@ export class SonosClient {
   /**
    * Search and play Spotify content
    */
-  public async searchAndPlaySpotify(roomName: string, query: string): Promise<void> {
+  public async searchAndPlaySpotify(
+    roomName: string,
+    query: string
+  ): Promise<void> {
     const device = this.getDeviceByRoom(roomName);
     if (!device) {
       throw new Error(`Sonos device not found for room: ${roomName}`);
@@ -336,11 +351,11 @@ export class SonosClient {
       // For Spotify search, we'll use a simplified approach
       // The newer sonos library has different methods for Spotify
       const spotifyUri = `spotify:search:${encodeURIComponent(query)}`;
-      
+
       // Try to play from Spotify using queue
       await device.queue(spotifyUri);
       await device.play();
-      
+
       logger.info("Sonos Spotify search and play", { roomName, query });
     } catch (error) {
       logger.error("Failed to search and play Spotify", {
@@ -355,10 +370,13 @@ export class SonosClient {
   /**
    * Add device to group (for multi-room audio)
    */
-  public async joinGroup(deviceRoomName: string, targetRoomName: string): Promise<void> {
+  public async joinGroup(
+    deviceRoomName: string,
+    targetRoomName: string
+  ): Promise<void> {
     const device = this.getDeviceByRoom(deviceRoomName);
     const targetDevice = this.getDeviceByRoom(targetRoomName);
-    
+
     if (!device || !targetDevice) {
       throw new Error("One or both devices not found");
     }

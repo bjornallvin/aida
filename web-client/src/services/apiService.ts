@@ -483,7 +483,9 @@ class ApiService {
     }
   }
 
-  async pauseSonos(room: string): Promise<{ success: boolean; error?: string }> {
+  async pauseSonos(
+    room: string
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       const response = await fetch(`${this.baseUrl}/sonos/pause`, {
         method: "POST",
@@ -525,7 +527,10 @@ class ApiService {
     }
   }
 
-  async setSonosVolume(room: string, volume: number): Promise<SonosVolumeResponse> {
+  async setSonosVolume(
+    room: string,
+    volume: number
+  ): Promise<SonosVolumeResponse> {
     try {
       const response = await fetch(`${this.baseUrl}/sonos/volume`, {
         method: "POST",
@@ -548,7 +553,9 @@ class ApiService {
 
   async getSonosVolume(room: string): Promise<SonosVolumeResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/sonos/${encodeURIComponent(room)}/volume`);
+      const response = await fetch(
+        `${this.baseUrl}/sonos/${encodeURIComponent(room)}/volume`
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -563,7 +570,9 @@ class ApiService {
 
   async getSonosState(room: string): Promise<SonosStateResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/sonos/${encodeURIComponent(room)}/state`);
+      const response = await fetch(
+        `${this.baseUrl}/sonos/${encodeURIComponent(room)}/state`
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -576,7 +585,9 @@ class ApiService {
     }
   }
 
-  async groupSonos(rooms: string[]): Promise<{ success: boolean; error?: string }> {
+  async groupSonos(
+    rooms: string[]
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       const response = await fetch(`${this.baseUrl}/sonos/group`, {
         method: "POST",
@@ -597,7 +608,9 @@ class ApiService {
     }
   }
 
-  async ungroupSonos(room: string): Promise<{ success: boolean; error?: string }> {
+  async ungroupSonos(
+    room: string
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       const response = await fetch(`${this.baseUrl}/sonos/ungroup`, {
         method: "POST",

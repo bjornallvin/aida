@@ -89,9 +89,9 @@ export class SonosController {
 
       res.json(response);
     } catch (error) {
-      logger.error("Sonos play request failed", { 
+      logger.error("Sonos play request failed", {
         error: (error as Error).message,
-        request: req.body 
+        request: req.body,
       });
 
       const response: APIResponse = {
@@ -132,9 +132,9 @@ export class SonosController {
 
       res.json(response);
     } catch (error) {
-      logger.error("Sonos pause request failed", { 
+      logger.error("Sonos pause request failed", {
         error: (error as Error).message,
-        request: req.body 
+        request: req.body,
       });
 
       const response: APIResponse = {
@@ -175,9 +175,9 @@ export class SonosController {
 
       res.json(response);
     } catch (error) {
-      logger.error("Sonos stop request failed", { 
+      logger.error("Sonos stop request failed", {
         error: (error as Error).message,
-        request: req.body 
+        request: req.body,
       });
 
       const response: APIResponse = {
@@ -353,11 +353,11 @@ export class SonosController {
       const response: APIResponse = {
         success: true,
         timestamp: new Date().toISOString(),
-        data: { 
+        data: {
           action: "grouped",
           deviceRoom,
           targetRoom,
-          message: `${deviceRoom} joined ${targetRoom}'s group`
+          message: `${deviceRoom} joined ${targetRoom}'s group`,
         },
       };
 
@@ -401,10 +401,10 @@ export class SonosController {
       const response: APIResponse = {
         success: true,
         timestamp: new Date().toISOString(),
-        data: { 
+        data: {
           action: "ungrouped",
           room,
-          message: `${room} left the group`
+          message: `${room} left the group`,
         },
       };
 
