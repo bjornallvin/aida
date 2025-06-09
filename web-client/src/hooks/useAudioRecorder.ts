@@ -15,12 +15,21 @@ export interface AudioRecorderState {
   audioBlob: Blob | null;
 }
 
+export interface AudioRecorderControls {
+  startRecording: () => Promise<void>;
+  stopRecording: () => Promise<Blob | null>;
+  pauseRecording: () => void;
+  resumeRecording: () => void;
+  clearRecording: () => void;
+  isSupported: boolean;
+}
+
 export function useAudioRecorder({
   onRecordingComplete,
   onError,
   maxDuration = 300000, // 5 minutes default
   mimeType = "audio/webm;codecs=opus",
-}: UseAudioRecorderProps = {}) {
+}: UseAudioRecorderProps = {}): AudioRecorderState & AudioRecorderControls {
   const [state, setState] = useState<AudioRecorderState>({
     isRecording: false,
     isPaused: false,
@@ -34,19 +43,30 @@ export function useAudioRecorder({
   const chunksRef = useRef<Blob[]>([]);
   const startTimeRef = useRef<number>(0);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const stopPromiseRef = useRef<{
+    resolve: (blob: Blob | null) => void;
+    reject: (error: Error) => void;
+  } | null>(null);
 
-  // Define stopRecording first
-  const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && state.isRecording) {
-      mediaRecorderRef.current.stop();
+  // Define stopRecording first - now returns a promise that resolves with the audio blob
+  const stopRecording = useCallback((): Promise<Blob | null> => {
+    return new Promise((resolve, reject) => {
+      if (mediaRecorderRef.current && state.isRecording) {
+        // Store the promise resolvers
+        stopPromiseRef.current = { resolve, reject };
 
-      if (durationIntervalRef.current) {
-        clearInterval(durationIntervalRef.current);
-        durationIntervalRef.current = null;
+        mediaRecorderRef.current.stop();
+
+        if (durationIntervalRef.current) {
+          clearInterval(durationIntervalRef.current);
+          durationIntervalRef.current = null;
+        }
+
+        startTimeRef.current = 0;
+      } else {
+        resolve(null);
       }
-
-      startTimeRef.current = 0;
-    }
+    });
   }, [state.isRecording]);
 
   const updateDuration = useCallback(() => {
@@ -108,6 +128,12 @@ export function useAudioRecorder({
           onRecordingComplete(audioBlob);
         }
 
+        // Resolve the stop promise if it exists
+        if (stopPromiseRef.current) {
+          stopPromiseRef.current.resolve(audioBlob);
+          stopPromiseRef.current = null;
+        }
+
         // Clean up
         if (streamRef.current) {
           streamRef.current.getTracks().forEach((track) => track.stop());
@@ -121,6 +147,12 @@ export function useAudioRecorder({
           onError(error);
         }
         console.error("MediaRecorder error:", event);
+
+        // Reject the stop promise if it exists
+        if (stopPromiseRef.current) {
+          stopPromiseRef.current.reject(error);
+          stopPromiseRef.current = null;
+        }
       };
 
       // Start recording
@@ -172,6 +204,12 @@ export function useAudioRecorder({
   const clearRecording = useCallback(() => {
     setState((prev) => ({ ...prev, audioBlob: null, duration: 0 }));
     chunksRef.current = [];
+
+    // Clear any pending stop promise
+    if (stopPromiseRef.current) {
+      stopPromiseRef.current.resolve(null);
+      stopPromiseRef.current = null;
+    }
   }, []);
 
   // Cleanup on unmount
@@ -182,6 +220,11 @@ export function useAudioRecorder({
       }
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+      // Clear any pending stop promise
+      if (stopPromiseRef.current) {
+        stopPromiseRef.current.resolve(null);
+        stopPromiseRef.current = null;
       }
     };
   }, []);

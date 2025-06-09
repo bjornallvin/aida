@@ -101,16 +101,7 @@ export const useVoiceInterface = (roomId: string = "web-client") => {
       }));
 
       // Stop recording and wait for audio blob
-      audioRecorder.stopRecording();
-
-      // Wait for the audio blob to be available
-      let audioBlob = audioRecorder.audioBlob;
-      let attempts = 0;
-      while (!audioBlob && attempts < 50) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        audioBlob = audioRecorder.audioBlob;
-        attempts++;
-      }
+      const audioBlob = await audioRecorder.stopRecording();
 
       if (!audioBlob || audioBlob.size === 0) {
         throw new Error("No audio recorded");

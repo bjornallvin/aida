@@ -187,7 +187,7 @@ class ApiService {
     try {
       const formData = new FormData();
       formData.append("audio", audioBlob, "audio.webm");
-      formData.append("room_id", roomId);
+      formData.append("roomName", roomId);
 
       const response = await fetch(`${this.baseUrl}/voice-command`, {
         method: "POST",
