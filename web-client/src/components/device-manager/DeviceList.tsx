@@ -20,6 +20,9 @@ export const DeviceList: React.FC<DeviceListProps> = ({
   onToggleRoom,
   onSetRoomBrightness,
   onSetRoomColor,
+  onSetRoomHue,
+  onSetRoomSaturation,
+  onSetRoomTemperature,
 }) => {
   const [expandedRooms, setExpandedRooms] = useState<Set<string>>(new Set());
   const devicesByRoom = groupDevicesByRoom(devices);
@@ -101,6 +104,13 @@ export const DeviceList: React.FC<DeviceListProps> = ({
                     onSetRoomBrightness(roomName, brightness)
                   }
                   onSetRoomColor={(color) => onSetRoomColor(roomName, color)}
+                  onSetRoomHue={(hue) => onSetRoomHue(roomName, hue)}
+                  onSetRoomSaturation={(saturation) =>
+                    onSetRoomSaturation(roomName, saturation)
+                  }
+                  onSetRoomTemperature={(temperature) =>
+                    onSetRoomTemperature(roomName, temperature)
+                  }
                 />
 
                 {roomDevices.map((device) => (

@@ -192,6 +192,46 @@ export const DeviceManager: React.FC = () => {
     }
   };
 
+  // Room control functions that affect all lights in the room
+  const setRoomHue = async (roomName: string, hue: number) => {
+    const roomDevices = devices.filter(
+      (d) => d.name.startsWith(roomName) && d.type === "light" && d.isReachable
+    );
+    if (roomDevices.length > 0) {
+      await Promise.all(
+        roomDevices.map((device) =>
+          colorControls.handleColorHueChange(device, hue)
+        )
+      );
+    }
+  };
+
+  const setRoomSaturation = async (roomName: string, saturation: number) => {
+    const roomDevices = devices.filter(
+      (d) => d.name.startsWith(roomName) && d.type === "light" && d.isReachable
+    );
+    if (roomDevices.length > 0) {
+      await Promise.all(
+        roomDevices.map((device) =>
+          colorControls.handleColorSaturationChange(device, saturation)
+        )
+      );
+    }
+  };
+
+  const setRoomTemperature = async (roomName: string, temperature: number) => {
+    const roomDevices = devices.filter(
+      (d) => d.name.startsWith(roomName) && d.type === "light" && d.isReachable
+    );
+    if (roomDevices.length > 0) {
+      await Promise.all(
+        roomDevices.map((device) =>
+          colorControls.handleColorTemperatureChange(device, temperature)
+        )
+      );
+    }
+  };
+
   if (error) {
     return (
       <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "2rem" }}>
@@ -260,6 +300,9 @@ export const DeviceManager: React.FC = () => {
           onToggleRoom={toggleRoomDevices}
           onSetRoomBrightness={setRoomBrightness}
           onSetRoomColor={setRoomColor}
+          onSetRoomHue={setRoomHue}
+          onSetRoomSaturation={setRoomSaturation}
+          onSetRoomTemperature={setRoomTemperature}
         />
       </div>
     </div>

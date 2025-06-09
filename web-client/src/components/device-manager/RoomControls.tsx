@@ -7,6 +7,9 @@ export const RoomControls: React.FC<RoomControlsProps> = ({
   onToggleRoom,
   onSetRoomBrightness,
   onSetRoomColor,
+  onSetRoomHue,
+  onSetRoomSaturation,
+  onSetRoomTemperature,
 }) => {
   const lightDevices = devices.filter(
     (d) => d.type === "light" && d.isReachable
@@ -173,6 +176,156 @@ export const RoomControls: React.FC<RoomControlsProps> = ({
                   {preset.name}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Room Hue Control */}
+          <div>
+            <label
+              style={{
+                display: "block",
+                fontSize: "0.9rem",
+                fontWeight: "500",
+                color: "#555",
+                marginBottom: "0.25rem",
+              }}
+            >
+              Room Hue
+            </label>
+            <div style={{ position: "relative" }}>
+              <input
+                type="range"
+                min="0"
+                max="360"
+                defaultValue="180"
+                onChange={(e) => {
+                  const hue = parseInt(e.target.value);
+                  console.log(
+                    "Room hue slider changed to:",
+                    hue,
+                    "for room:",
+                    roomName
+                  );
+                  onSetRoomHue(hue);
+                }}
+                className="room-hue-slider"
+                style={{
+                  width: "100%",
+                  height: "12px",
+                  borderRadius: "6px",
+                  background:
+                    "linear-gradient(to right, #ff0000 0%, #ffff00 16.67%, #00ff00 33.33%, #00ffff 50%, #0000ff 66.67%, #ff00ff 83.33%, #ff0000 100%)",
+                  outline: "none",
+                  cursor: "pointer",
+                  WebkitAppearance: "none",
+                  appearance: "none",
+                }}
+              />
+              <style
+                dangerouslySetInnerHTML={{
+                  __html: `
+                  .room-hue-slider::-webkit-slider-thumb {
+                    -webkit-appearance: none;
+                    appearance: none;
+                    width: 16px;
+                    height: 16px;
+                    border-radius: 50%;
+                    background: #ffffff;
+                    border: 2px solid #333;
+                    cursor: pointer;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                  }
+                  .room-hue-slider::-moz-range-thumb {
+                    width: 16px;
+                    height: 16px;
+                    border-radius: 50%;
+                    background: #ffffff;
+                    border: 2px solid #333;
+                    cursor: pointer;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                    border: none;
+                  }
+                `,
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Room Saturation Control */}
+          <div>
+            <label
+              style={{
+                display: "block",
+                fontSize: "0.9rem",
+                fontWeight: "500",
+                color: "#555",
+                marginBottom: "0.25rem",
+              }}
+            >
+              Room Saturation
+            </label>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              defaultValue="50"
+              onChange={(e) => onSetRoomSaturation(parseInt(e.target.value))}
+              style={{
+                width: "100%",
+                height: "8px",
+                borderRadius: "4px",
+                background:
+                  "linear-gradient(to right, #ffffff 0%, #ff0000 100%)",
+                outline: "none",
+                cursor: "pointer",
+                WebkitAppearance: "none",
+                appearance: "none",
+              }}
+            />
+          </div>
+
+          {/* Room Temperature Control */}
+          <div>
+            <label
+              style={{
+                display: "block",
+                fontSize: "0.9rem",
+                fontWeight: "500",
+                color: "#555",
+                marginBottom: "0.25rem",
+              }}
+            >
+              Room Temperature
+            </label>
+            <input
+              type="range"
+              min="2000"
+              max="6500"
+              defaultValue="4000"
+              onChange={(e) => onSetRoomTemperature(parseInt(e.target.value))}
+              style={{
+                width: "100%",
+                height: "8px",
+                borderRadius: "4px",
+                background:
+                  "linear-gradient(to right, #ffa500 0%, #ffffff 50%, #87ceeb 100%)",
+                outline: "none",
+                cursor: "pointer",
+                WebkitAppearance: "none",
+                appearance: "none",
+              }}
+            />
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontSize: "0.75rem",
+                color: "#666",
+                marginTop: "0.25rem",
+              }}
+            >
+              <span>Warm (2000K)</span>
+              <span>Cool (6500K)</span>
             </div>
           </div>
         </div>

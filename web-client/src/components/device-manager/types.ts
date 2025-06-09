@@ -35,6 +35,9 @@ export interface RoomControlsProps {
   onToggleRoom: (turnOn: boolean) => void;
   onSetRoomBrightness: (brightness: number) => void;
   onSetRoomColor: (color: { r: number; g: number; b: number }) => void;
+  onSetRoomHue: (hue: number) => void;
+  onSetRoomSaturation: (saturation: number) => void;
+  onSetRoomTemperature: (temperature: number) => void;
 }
 
 export interface GlobalControlsProps {
@@ -65,6 +68,9 @@ export interface DeviceListProps {
     roomName: string,
     color: { r: number; g: number; b: number }
   ) => void;
+  onSetRoomHue: (roomName: string, hue: number) => void;
+  onSetRoomSaturation: (roomName: string, saturation: number) => void;
+  onSetRoomTemperature: (roomName: string, temperature: number) => void;
 }
 
 export interface DeviceControlsProps {
