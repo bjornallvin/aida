@@ -69,9 +69,9 @@ export class SonosController {
   private sonosService: SonosService;
   private radioService: DirectRadioSonosService;
 
-  constructor() {
-    this.sonosService = new SonosService();
-    this.radioService = new DirectRadioSonosService();
+  constructor(sonosService?: SonosService, radioService?: DirectRadioSonosService) {
+    this.sonosService = sonosService || new SonosService();
+    this.radioService = radioService || new DirectRadioSonosService(this.sonosService);
   }
 
   async controlSonos(params: any): Promise<ToolExecutionResult> {

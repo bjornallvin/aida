@@ -14,6 +14,8 @@ import {
 import { logger } from "../utils";
 import { config } from "../config";
 import { SMART_HOME_TOOLS, SmartHomeToolExecutor } from "../tools";
+import { SonosService } from "./sonos";
+import { DirectRadioSonosService } from "./direct-radio-sonos";
 
 /**
  * AI service for handling chat and voice interactions
@@ -24,10 +26,15 @@ export class AIService {
   private openaiTTSClient: OpenAITTSClient;
   private toolExecutor: SmartHomeToolExecutor;
 
-  constructor(openaiClient?: OpenAIClient, openaiTTSClient?: OpenAITTSClient) {
+  constructor(
+    openaiClient?: OpenAIClient, 
+    openaiTTSClient?: OpenAITTSClient,
+    sonosService?: SonosService,
+    radioService?: DirectRadioSonosService
+  ) {
     this.openaiClient = openaiClient || new OpenAIClient();
     this.openaiTTSClient = openaiTTSClient || new OpenAITTSClient();
-    this.toolExecutor = new SmartHomeToolExecutor();
+    this.toolExecutor = new SmartHomeToolExecutor(sonosService, radioService);
   }
 
   /**

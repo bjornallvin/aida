@@ -4,10 +4,13 @@ import {
   RadioSonosRequest,
   RadioSonosResponse,
 } from "../services/direct-radio-sonos";
+import { SonosService } from "../services/sonos";
 import { logger } from "../utils";
 
-const router = Router();
-const radioService = new DirectRadioSonosService();
+// Create a function that accepts sonosService to avoid creating multiple instances
+function createRadioRoutes(sonosService: SonosService, radioService?: DirectRadioSonosService): Router {
+  const router = Router();
+  const sharedRadioService = radioService || new DirectRadioSonosService(sonosService);
 
 interface APIResponse {
   success: boolean;
@@ -25,8 +28,8 @@ router.get("/stations", async (req: Request, res: Response) => {
   try {
     logger.info("Getting available radio stations");
 
-    const stations = radioService.getAvailableStations();
-    const devices = await radioService.getAvailableDevices();
+    const stations = sharedRadioService.getAvailableStations();
+    const devices = await sharedRadioService.getAvailableDevices();
 
     const response: APIResponse = {
       success: true,
@@ -93,7 +96,7 @@ router.post("/play", async (req: Request, res: Response) => {
       action: "play",
     };
 
-    const result = await radioService.playRadio(request);
+    const result = await sharedRadioService.playRadio(request);
 
     const response: APIResponse = {
       success: true,
@@ -140,7 +143,7 @@ router.post("/search", async (req: Request, res: Response) => {
 
     logger.info("Radio search request", { query });
 
-    const matches = await radioService.searchStations(query);
+    const matches = await sharedRadioService.searchStations(query);
 
     const response: APIResponse = {
       success: true,
@@ -191,7 +194,7 @@ router.post("/search/tunein", async (req: Request, res: Response) => {
 
     logger.info("TuneIn search request", { query, limit });
 
-    const stations = await radioService.searchTuneInStations(query, limit);
+    const stations = await sharedRadioService.searchTuneInStations(query, limit);
 
     const response: APIResponse = {
       success: true,
@@ -257,7 +260,7 @@ router.post("/search-and-play", async (req: Request, res: Response) => {
     // Try different search sources based on preference
     if (source === "tunein" || source === "both") {
       // First try TuneIn search
-      const tuneInStations = await radioService.searchTuneInStations(query, 1);
+      const tuneInStations = await sharedRadioService.searchTuneInStations(query, 1);
       if (tuneInStations.length > 0) {
         foundStationData = tuneInStations[0];
         if (foundStationData) {
@@ -271,7 +274,7 @@ router.post("/search-and-play", async (req: Request, res: Response) => {
 
     if (!foundStationData && (source === "curated" || source === "both")) {
       // Try curated stations if TuneIn didn't find anything
-      const curatedStations = await radioService.searchStations(query);
+      const curatedStations = await sharedRadioService.searchStations(query);
       if (curatedStations.length > 0) {
         foundStationData = curatedStations[0];
         if (foundStationData) {
@@ -310,7 +313,7 @@ router.post("/search-and-play", async (req: Request, res: Response) => {
       playRequest.streamUrl = station.url;
     }
 
-    const playResult = await radioService.playRadio(playRequest);
+    const playResult = await sharedRadioService.playRadio(playRequest);
 
     const response: APIResponse = {
       success: true,
@@ -362,7 +365,7 @@ router.get("/popular", async (req: Request, res: Response) => {
 
     logger.info("Popular stations request", { category, limit });
 
-    const stations = await radioService.getPopularTuneInStations(
+    const stations = await sharedRadioService.getPopularTuneInStations(
       category as string,
       parseInt(limit as string) || 20
     );
@@ -416,7 +419,7 @@ router.post("/stop", async (req: Request, res: Response) => {
 
     logger.info("Radio stop request", { roomName });
 
-    await radioService.stopRadio(roomName);
+    await sharedRadioService.stopRadio(roomName);
 
     const response: APIResponse = {
       success: true,
@@ -463,7 +466,7 @@ router.post("/pause", async (req: Request, res: Response) => {
 
     logger.info("Radio pause request", { roomName });
 
-    await radioService.pauseRadio(roomName);
+    await sharedRadioService.pauseRadio(roomName);
 
     const response: APIResponse = {
       success: true,
@@ -489,4 +492,7 @@ router.post("/pause", async (req: Request, res: Response) => {
   }
 });
 
-export default router;
+  return router;
+}
+
+export default createRadioRoutes;

@@ -7,6 +7,7 @@ import { logger } from "./utils";
 import { createRoutes } from "./routes";
 import { requestLogger, errorHandler, notFoundHandler } from "./middleware";
 import { tradfriController } from "./tools/tradfriControl";
+import { SonosService } from "./services/sonos";
 
 /**
  * Aida Apartment AI Server
@@ -14,9 +15,11 @@ import { tradfriController } from "./tools/tradfriControl";
  */
 class AidaServer {
   private app: express.Application;
+  private sonosService: SonosService;
 
   constructor() {
     this.app = express();
+    this.sonosService = new SonosService();
     this.setupMiddleware();
     this.setupRoutes();
     this.setupErrorHandling();
@@ -40,7 +43,7 @@ class AidaServer {
    */
   private setupRoutes(): void {
     // API routes
-    this.app.use("/", createRoutes());
+    this.app.use("/", createRoutes({ sonosService: this.sonosService }));
 
     // Serve static audio files
     this.app.use("/audio", express.static(config.audioDir));

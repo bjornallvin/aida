@@ -5,24 +5,37 @@ import { TTSController } from "./tts";
 import { AIController } from "./ai";
 import { DeviceController } from "./devices";
 import { SonosController } from "./sonos";
-import ttsSonosRoutes from "./tts-sonos";
-import radioRoutes from "./radio";
+import createTTSSonosRoutes from "./tts-sonos";
+import createRadioRoutes from "./radio";
 import { uploadConfig } from "../config";
 import { validateRequired } from "../middleware";
+import { SonosService } from "../services/sonos";
+import { TTSSonosService } from "../services/tts-sonos";
+import { AIService } from "../services/ai";
+import { DirectRadioSonosService } from "../services/direct-radio-sonos";
 
 /**
  * Main router configuration
  * Sets up all API endpoints with proper middleware
  */
-export function createRoutes(): Router {
+interface CreateRoutesOptions {
+  sonosService: SonosService;
+}
+
+export function createRoutes(options: CreateRoutesOptions): Router {
   const router = Router();
+  const { sonosService } = options;
+
+  // Create shared service instances
+  const ttsSonosService = new TTSSonosService(undefined, sonosService);
+  const radioService = new DirectRadioSonosService(sonosService);
 
   // Initialize controllers
   const musicController = new MusicController();
   const ttsController = new TTSController();
-  const aiController = new AIController();
+  const aiController = new AIController(new AIService(undefined, undefined, sonosService, radioService), ttsSonosService);
   const deviceController = new DeviceController();
-  const sonosController = new SonosController();
+  const sonosController = new SonosController(sonosService);
 
   // Health check route
   router.get("/health", HealthController.getHealth);
@@ -170,10 +183,10 @@ export function createRoutes(): Router {
   );
 
   // TTS + Sonos combined routes
-  router.use("/tts-sonos", ttsSonosRoutes);
+  router.use("/tts-sonos", createTTSSonosRoutes(sonosService));
 
   // Direct radio streaming routes
-  router.use("/radio", radioRoutes);
+  router.use("/radio", createRadioRoutes(sonosService, radioService));
 
   return router;
 }

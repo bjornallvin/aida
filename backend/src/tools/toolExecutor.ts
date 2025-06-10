@@ -9,6 +9,8 @@ import { SecurityController } from "./securityControl";
 import { DeviceStatusController } from "./deviceStatus";
 import { controlTradfri } from "./tradfriControl";
 import { SonosController } from "./sonosControl";
+import { SonosService } from "../services/sonos";
+import { DirectRadioSonosService } from "../services/direct-radio-sonos";
 
 export class SmartHomeToolExecutor {
   //private lightController = new LightController();
@@ -17,7 +19,11 @@ export class SmartHomeToolExecutor {
   private securityController = new SecurityController();
   private deviceStatusController = new DeviceStatusController();
   private tradfriController = controlTradfri; // Assuming this is a function, not a class
-  private sonosController = new SonosController();
+  private sonosController: SonosController;
+
+  constructor(sonosService?: SonosService, radioService?: DirectRadioSonosService) {
+    this.sonosController = new SonosController(sonosService, radioService);
+  }
 
   /**
    * Execute a tool call
@@ -48,8 +54,8 @@ export class SmartHomeToolExecutor {
             parameters
           );
           break;
-        case "tradfri_control":
-          result = await controlTradfri(parameters);
+        case "control_lights":
+          result = await this.tradfriController(parameters);
           break;
         case "control_sonos":
           result = await this.sonosController.controlSonos(parameters);

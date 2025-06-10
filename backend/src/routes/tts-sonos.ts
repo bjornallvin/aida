@@ -2,9 +2,12 @@ import { Router } from "express";
 import { TTSSonosService } from "../services";
 import { logger } from "../utils";
 import { validateRequired } from "../middleware";
+import { SonosService } from "../services/sonos";
 
-const router = Router();
-const ttsSonosService = new TTSSonosService();
+// Create a function that accepts sonosService to avoid creating multiple instances
+function createTTSSonosRoutes(sonosService: SonosService): Router {
+  const router = Router();
+  const ttsSonosService = new TTSSonosService(undefined, sonosService);
 
 /**
  * POST /tts-sonos
@@ -137,4 +140,7 @@ router.post("/rediscover", async (req, res) => {
   }
 });
 
-export default router;
+  return router;
+}
+
+export default createTTSSonosRoutes;
