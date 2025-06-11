@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   apiService,
   SonosDevice,
@@ -21,12 +21,7 @@ const SonosManager: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
 
-  // Load devices on component mount
-  useEffect(() => {
-    loadDevices();
-  }, []);
-
-  const loadDevices = async () => {
+  const loadDevices = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -55,7 +50,12 @@ const SonosManager: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Load devices on component mount
+  useEffect(() => {
+    loadDevices();
+  }, [loadDevices]);
 
   const loadDeviceState = async (roomName: string) => {
     try {

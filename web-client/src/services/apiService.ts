@@ -198,7 +198,26 @@ class ApiService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      return await response.json();
+      const result = await response.json();
+      console.log("Voice command raw response:", result);
+      
+      // Check if we have the APIResponse format from backend
+      if (result.success && result.data) {
+        // Backend returns APIResponse<VoiceCommandSonosResponse>
+        const data = result.data;
+        return {
+          success: true,
+          text_response: data.response,
+          audio_response: data.sonosPlayback?.success ? "sonos_played" : undefined,
+          message: data.sonosPlayback?.message,
+        };
+      } else {
+        // Handle error case
+        return {
+          success: false,
+          error: result.message || "Voice command failed",
+        };
+      }
     } catch (error) {
       console.error("Voice command failed:", error);
       throw error;
@@ -259,7 +278,7 @@ class ApiService {
         },
         body: JSON.stringify({
           message,
-          room_id: roomId,
+          roomName: roomId, // Use roomName instead of room_id to match backend
         }),
       });
 
@@ -267,7 +286,16 @@ class ApiService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      return await response.json();
+      const result = await response.json();
+      console.log("Raw backend response:", result);
+      
+      // Parse APIResponse<ChatResponse> format from backend
+      if (result.success && result.data && result.data.response) {
+        return { response: result.data.response };
+      } else {
+        console.error("Unexpected response format:", result);
+        throw new Error(result.error || "Invalid response format from backend");
+      }
     } catch (error) {
       console.error("Chat message failed:", error);
       throw error;

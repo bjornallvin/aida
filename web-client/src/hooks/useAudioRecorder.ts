@@ -84,6 +84,18 @@ export function useAudioRecorder({
 
   const startRecording = useCallback(async () => {
     try {
+      console.log("🎤 AudioRecorder: Starting recording...");
+      console.log("🎤 AudioRecorder: navigator:", typeof navigator);
+      console.log("🎤 AudioRecorder: navigator.mediaDevices:", typeof navigator.mediaDevices);
+      console.log("🎤 AudioRecorder: window.location:", window.location.href);
+      
+      // Check if getUserMedia is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error(
+          "Microphone access is not available. Please ensure you're using HTTPS and your browser supports audio recording."
+        );
+      }
+
       // Request microphone permission
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {

@@ -9,8 +9,6 @@ export default function Home() {
   const [selectedSonosRoom, setSelectedSonosRoom] = useState<string>("");
   const [activeTab, setActiveTab] = useState<"voice" | "text">("voice");
 
-  console.log("🏠 Home: Rendering with activeTab:", activeTab);
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="container mx-auto px-4 py-8 max-w-6xl">
