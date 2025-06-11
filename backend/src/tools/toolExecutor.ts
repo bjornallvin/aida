@@ -21,7 +21,10 @@ export class SmartHomeToolExecutor {
   private tradfriController = controlTradfri; // Assuming this is a function, not a class
   private sonosController: SonosController;
 
-  constructor(sonosService?: SonosService, radioService?: DirectRadioSonosService) {
+  constructor(
+    sonosService?: SonosService,
+    radioService?: DirectRadioSonosService
+  ) {
     this.sonosController = new SonosController(sonosService, radioService);
   }
 

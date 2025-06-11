@@ -11,7 +11,7 @@ export const SONOS_CONTROL_TOOL: ToolDefinition = {
   type: "function",
   function: {
     name: "control_sonos",
-    description: 
+    description:
       "Control Sonos speakers in the apartment. Can play radio stations, control playback, adjust volume, and manage multi-room audio. " +
       "Supports TuneIn radio stations, direct radio streams, playback controls (play/pause/stop), volume control, and speaker grouping. " +
       "Use 'play_radio' action for music requests - this will search and play radio stations automatically.",
@@ -25,7 +25,7 @@ export const SONOS_CONTROL_TOOL: ToolDefinition = {
             "play_radio",
             "search_radio",
             "stop",
-            "pause", 
+            "pause",
             "resume",
             "set_volume",
             "get_volume",
@@ -34,30 +34,35 @@ export const SONOS_CONTROL_TOOL: ToolDefinition = {
             "group_speakers",
             "ungroup_speaker",
             "play_station",
-            "get_stations"
+            "get_stations",
           ],
         },
         roomName: {
           type: "string",
-          description: "The name of the Sonos speaker/room to control (e.g., 'Living Room', 'Kitchen', 'Bedroom')",
+          description:
+            "The name of the Sonos speaker/room to control (e.g., 'Living Room', 'Kitchen', 'Bedroom')",
         },
         query: {
-          type: "string", 
-          description: "Search query for radio stations (used with 'play_radio' and 'search_radio' actions). Can be genre, station name, or artist.",
+          type: "string",
+          description:
+            "Search query for radio stations (used with 'play_radio' and 'search_radio' actions). Can be genre, station name, or artist.",
         },
         stationName: {
           type: "string",
-          description: "Specific radio station name to play (used with 'play_station' action)",
+          description:
+            "Specific radio station name to play (used with 'play_station' action)",
         },
         volume: {
           type: "number",
-          description: "Volume level from 0-100 (used with 'set_volume' action)",
+          description:
+            "Volume level from 0-100 (used with 'set_volume' action)",
           minimum: 0,
           maximum: 100,
         },
         targetRoom: {
-          type: "string", 
-          description: "Target room name for grouping speakers (used with 'group_speakers' action)",
+          type: "string",
+          description:
+            "Target room name for grouping speakers (used with 'group_speakers' action)",
         },
       },
       required: ["action"],
@@ -69,15 +74,25 @@ export class SonosController {
   private sonosService: SonosService;
   private radioService: DirectRadioSonosService;
 
-  constructor(sonosService?: SonosService, radioService?: DirectRadioSonosService) {
+  constructor(
+    sonosService?: SonosService,
+    radioService?: DirectRadioSonosService
+  ) {
     this.sonosService = sonosService || new SonosService();
-    this.radioService = radioService || new DirectRadioSonosService(this.sonosService);
+    this.radioService =
+      radioService || new DirectRadioSonosService(this.sonosService);
   }
 
   async controlSonos(params: any): Promise<ToolExecutionResult> {
     const { action, roomName, query, stationName, volume, targetRoom } = params;
 
-    logger.info("Sonos control requested", { action, roomName, query, stationName, volume });
+    logger.info("Sonos control requested", {
+      action,
+      roomName,
+      query,
+      stationName,
+      volume,
+    });
 
     try {
       switch (action) {
@@ -128,7 +143,8 @@ export class SonosController {
           };
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       logger.error("Sonos control failed", { action, error: errorMessage });
 
       return {
@@ -144,7 +160,10 @@ export class SonosController {
     }
   }
 
-  private async playRadio(roomName: string, query: string): Promise<ToolExecutionResult> {
+  private async playRadio(
+    roomName: string,
+    query: string
+  ): Promise<ToolExecutionResult> {
     if (!roomName) {
       return {
         success: false,
@@ -164,7 +183,7 @@ export class SonosController {
     try {
       // First search for stations
       const searchResults = await this.radioService.searchStations(query, true);
-      
+
       if (searchResults.length === 0) {
         return {
           success: false,
@@ -205,7 +224,8 @@ export class SonosController {
         },
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       return {
         success: false,
         message: `Failed to play radio: ${errorMessage}`,
@@ -225,7 +245,7 @@ export class SonosController {
 
     try {
       const searchResults = await this.radioService.searchStations(query, true);
-      
+
       if (searchResults.length === 0) {
         return {
           success: false,
@@ -234,7 +254,7 @@ export class SonosController {
         };
       }
 
-      const stations = searchResults.map(result => {
+      const stations = searchResults.map((result) => {
         const station = result.station as any; // Cast to any since station can have different shapes
         return {
           name: station.name,
@@ -255,7 +275,8 @@ export class SonosController {
         },
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       return {
         success: false,
         message: `Failed to search radio stations: ${errorMessage}`,
@@ -264,7 +285,10 @@ export class SonosController {
     }
   }
 
-  private async playStation(roomName: string, stationName: string): Promise<ToolExecutionResult> {
+  private async playStation(
+    roomName: string,
+    stationName: string
+  ): Promise<ToolExecutionResult> {
     if (!roomName) {
       return {
         success: false,
@@ -300,7 +324,8 @@ export class SonosController {
         },
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       return {
         success: false,
         message: `Failed to play station: ${errorMessage}`,
@@ -330,7 +355,8 @@ export class SonosController {
         },
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       return {
         success: false,
         message: `Failed to stop playback: ${errorMessage}`,
@@ -344,7 +370,7 @@ export class SonosController {
       return {
         success: false,
         message: "Room name is required to pause playback",
-        error: "MISSING_ROOM", 
+        error: "MISSING_ROOM",
       };
     }
 
@@ -360,7 +386,8 @@ export class SonosController {
         },
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       return {
         success: false,
         message: `Failed to pause playback: ${errorMessage}`,
@@ -394,7 +421,8 @@ export class SonosController {
         },
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       return {
         success: false,
         message: `Failed to resume playback: ${errorMessage}`,
@@ -403,7 +431,10 @@ export class SonosController {
     }
   }
 
-  private async setVolume(roomName: string, volume: number): Promise<ToolExecutionResult> {
+  private async setVolume(
+    roomName: string,
+    volume: number
+  ): Promise<ToolExecutionResult> {
     if (!roomName) {
       return {
         success: false,
@@ -433,7 +464,8 @@ export class SonosController {
         },
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       return {
         success: false,
         message: `Failed to set volume: ${errorMessage}`,
@@ -463,7 +495,8 @@ export class SonosController {
         },
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       return {
         success: false,
         message: `Failed to get volume: ${errorMessage}`,
@@ -486,7 +519,9 @@ export class SonosController {
 
       return {
         success: true,
-        message: `Status for ${roomName}: ${status.isPlaying ? 'Playing' : 'Stopped'}, Volume: ${status.volume}%`,
+        message: `Status for ${roomName}: ${
+          status.isPlaying ? "Playing" : "Stopped"
+        }, Volume: ${status.volume}%`,
         data: {
           roomName,
           isPlaying: status.isPlaying,
@@ -497,7 +532,8 @@ export class SonosController {
         },
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       return {
         success: false,
         message: `Failed to get status: ${errorMessage}`,
@@ -510,7 +546,7 @@ export class SonosController {
     try {
       const devices = await this.sonosService.getDevices();
 
-      const deviceList = devices.map(device => ({
+      const deviceList = devices.map((device) => ({
         roomName: device.roomName,
         uuid: device.uuid,
         host: device.host, // Use host instead of ip
@@ -526,7 +562,8 @@ export class SonosController {
         },
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       return {
         success: false,
         message: `Failed to get devices: ${errorMessage}`,
@@ -573,7 +610,8 @@ export class SonosController {
         },
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       return {
         success: false,
         message: `Failed to get stations: ${errorMessage}`,
@@ -582,7 +620,10 @@ export class SonosController {
     }
   }
 
-  private async groupSpeakers(deviceRoom: string, targetRoom: string): Promise<ToolExecutionResult> {
+  private async groupSpeakers(
+    deviceRoom: string,
+    targetRoom: string
+  ): Promise<ToolExecutionResult> {
     if (!deviceRoom || !targetRoom) {
       return {
         success: false,
@@ -604,7 +645,8 @@ export class SonosController {
         },
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       return {
         success: false,
         message: `Failed to group speakers: ${errorMessage}`,
@@ -634,7 +676,8 @@ export class SonosController {
         },
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       return {
         success: false,
         message: `Failed to ungroup speaker: ${errorMessage}`,
