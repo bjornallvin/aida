@@ -1,0 +1,42 @@
+{
+  "name": "mcp-dirigera",
+  "version": "1.0.0",
+  "description": "MCP server for controlling IKEA DIRIGERA smart home hub",
+  "main": "dist/index.js",
+  "type": "module",
+  "bin": {
+    "mcp-dirigera": "./bin/mcp-dirigera.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx --env-file=.env src/index.ts",
+    "prepare": "npm run build",
+    "test:cli": "node bin/mcp-dirigera.js",
+    "test:discover": "node bin/mcp-dirigera.js discover",
+    "test:auth": "node bin/mcp-dirigera.js authenticate 192.168.1.176"
+  },
+  "keywords": [
+    "mcp",
+    "dirigera",
+    "ikea",
+    "smart-home"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "commander": "^12.1.0",
+    "dirigera": "^1.1.7",
+    "dotenv": "^16.5.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "files": [
+    "dist/**/*",
+    "bin/**/*"
+  ]
+}
